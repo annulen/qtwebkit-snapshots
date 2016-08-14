@@ -72,7 +72,8 @@ QWEBKIT_EXPORT void qt_networkAccessAllowed(bool isAllowed)
 class QWebSettingsPrivate {
 public:
     QWebSettingsPrivate(WebCore::Settings* wcSettings = 0)
-        : settings(wcSettings)
+        : offlineStorageDefaultQuota(0)
+        , settings(wcSettings)
     {
     }
 
@@ -83,6 +84,7 @@ public:
     QString defaultTextEncoding;
     QString localStoragePath;
     QString offlineWebApplicationCachePath;
+    QString offlineDatabasePath;
     QString mediaType;
     qint64 offlineStorageDefaultQuota;
     QWebSettings::ThirdPartyCookiePolicy thirdPartyCookiePolicy;
@@ -153,7 +155,9 @@ void QWebSettingsPrivate::apply()
         value = attributes.value(QWebSettings::AcceleratedCompositingEnabled,
                                       global->attributes.value(QWebSettings::AcceleratedCompositingEnabled));
 
-        settings->setAcceleratedCompositingEnabled(value);
+        // FIXME: Temporary disabled until AC is fully working
+        // settings->setAcceleratedCompositingEnabled(value);
+        settings->setAcceleratedCompositingEnabled(false);
 
         bool showDebugVisuals = qgetenv("WEBKIT_SHOW_COMPOSITING_DEBUG_VISUALS") == "1";
         settings->setShowDebugBorders(showDebugVisuals);
@@ -172,13 +176,14 @@ void QWebSettingsPrivate::apply()
         value = attributes.value(QWebSettings::WebAudioEnabled, global->attributes.value(QWebSettings::WebAudioEnabled));
         settings->setWebAudioEnabled(value);
 #endif
+#if ENABLE(MEDIA_SOURCE)
+        value = attributes.value(QWebSettings::MediaSourceEnabled, global->attributes.value(QWebSettings::MediaSourceEnabled));
+        settings->setMediaSourceEnabled(value);
+#endif
 
         value = attributes.value(QWebSettings::CSSRegionsEnabled,
                                  global->attributes.value(QWebSettings::CSSRegionsEnabled));
         WebCore::RuntimeEnabledFeatures::sharedFeatures().setCSSRegionsEnabled(value);
-        value = attributes.value(QWebSettings::CSSCompositingEnabled,
-                                 global->attributes.value(QWebSettings::CSSCompositingEnabled));
-        WebCore::RuntimeEnabledFeatures::sharedFeatures().setCSSCompositingEnabled(value);
 
         value = attributes.value(QWebSettings::HyperlinkAuditingEnabled,
                                  global->attributes.value(QWebSettings::HyperlinkAuditingEnabled));
@@ -242,9 +247,9 @@ void QWebSettingsPrivate::apply()
                                       global->attributes.value(QWebSettings::PrintElementBackgrounds));
         settings->setShouldPrintBackgrounds(value);
 
-#if ENABLE(SQL_DATABASE)
         value = attributes.value(QWebSettings::OfflineStorageDatabaseEnabled,
                                       global->attributes.value(QWebSettings::OfflineStorageDatabaseEnabled));
+#if ENABLE(SQL_DATABASE)
         WebCore::DatabaseManager::manager().setIsAvailable(value);
 #endif
 
@@ -547,11 +552,11 @@ QWebSettings::QWebSettings()
     d->attributes.insert(QWebSettings::LocalStorageEnabled, false);
     d->attributes.insert(QWebSettings::LocalContentCanAccessRemoteUrls, false);
     d->attributes.insert(QWebSettings::LocalContentCanAccessFileUrls, true);
-    d->attributes.insert(QWebSettings::AcceleratedCompositingEnabled, true);
+    d->attributes.insert(QWebSettings::AcceleratedCompositingEnabled, false);
     d->attributes.insert(QWebSettings::WebGLEnabled, true);
     d->attributes.insert(QWebSettings::WebAudioEnabled, false);
+    d->attributes.insert(QWebSettings::MediaSourceEnabled, false);
     d->attributes.insert(QWebSettings::CSSRegionsEnabled, true);
-    d->attributes.insert(QWebSettings::CSSCompositingEnabled, true);
     d->attributes.insert(QWebSettings::CSSGridLayoutEnabled, false);
     d->attributes.insert(QWebSettings::HyperlinkAuditingEnabled, false);
     d->attributes.insert(QWebSettings::TiledBackingStoreEnabled, false);
@@ -571,7 +576,6 @@ QWebSettings::QWebSettings()
 QWebSettings::QWebSettings(WebCore::Settings* settings)
     : d(new QWebSettingsPrivate(settings))
 {
-    d->settings = settings;
     d->apply();
     allSettings()->append(d);
 }
@@ -1061,6 +1065,7 @@ void QWebSettings::resetAttribute(WebAttribute attr)
 void QWebSettings::setOfflineStoragePath(const QString& path)
 {
     WebCore::initializeWebCoreQt();
+    QWebSettings::globalSettings()->d->offlineDatabasePath = path;
 #if ENABLE(SQL_DATABASE)
     WebCore::DatabaseManager::manager().setDatabaseDirectoryPath(path);
 #endif
@@ -1077,11 +1082,7 @@ void QWebSettings::setOfflineStoragePath(const QString& path)
 QString QWebSettings::offlineStoragePath()
 {
     WebCore::initializeWebCoreQt();
-#if ENABLE(SQL_DATABASE)
-    return WebCore::DatabaseManager::manager().databaseDirectoryPath();
-#else
-    return QString();
-#endif
+    return QWebSettings::globalSettings()->d->offlineDatabasePath;
 }
 
 /*!
@@ -1196,7 +1197,7 @@ void QWebSettings::setLocalStoragePath(const QString& path)
     \since 4.6
 
     Returns the path for HTML5 local storage.
-    
+
     \sa setLocalStoragePath()
 */
 QString QWebSettings::localStoragePath() const

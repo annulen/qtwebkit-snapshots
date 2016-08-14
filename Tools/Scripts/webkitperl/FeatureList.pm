@@ -157,6 +157,8 @@ my (
 
 prohibitUnknownPort();
 
+sub isQtGstreamer { return isQt() && !isAnyWindows() && !isDarwin() }
+
 my @features = (
     { option => "3d-rendering", desc => "Toggle 3D Rendering support",
       define => "ENABLE_3D_TRANSFORMS", default => (isAppleMacWebKit() || isIOSWebKit() || isGtk() || isEfl()), value => \$threeDTransformsSupport },
@@ -240,7 +242,7 @@ my @features = (
       define => "ENABLE_CUSTOM_SCHEME_HANDLER", default => isEfl(), value => \$customSchemeHandlerSupport },
 
     { option => "datalist-element", desc => "Toggle Datalist Element support",
-      define => "ENABLE_DATALIST_ELEMENT", default => isEfl(), value => \$datalistElementSupport },
+      define => "ENABLE_DATALIST_ELEMENT", default => (isEfl() || isQt()), value => \$datalistElementSupport },
 
     { option => "data-transfer-items", desc => "Toggle Data Transfer Items support",
       define => "ENABLE_DATA_TRANSFER_ITEMS", default => 0, value => \$dataTransferItemsSupport },
@@ -249,7 +251,7 @@ my @features = (
       define => "ENABLE_DETAILS_ELEMENT", default => 1, value => \$detailsElementSupport },
 
     { option => "device-orientation", desc => "Toggle Device Orientation support",
-      define => "ENABLE_DEVICE_ORIENTATION", default => isIOSWebKit(), value => \$deviceOrientationSupport },
+      define => "ENABLE_DEVICE_ORIENTATION", default => (isIOSWebKit() || isQt()), value => \$deviceOrientationSupport },
 
     { option => "dom4-events-constructor", desc => "Expose DOM4 Events constructors",
       define => "ENABLE_DOM4_EVENTS_CONSTRUCTOR", default => (isAppleWebKit() || isGtk() || isEfl()), value => \$dom4EventsConstructor },
@@ -282,7 +284,7 @@ my @features = (
       define => "ENABLE_ICONDATABASE", default => !isIOSWebKit(), value => \$icondatabaseSupport },
 
     { option => "indexed-database", desc => "Toggle Indexed Database support",
-      define => "ENABLE_INDEXED_DATABASE", default => (isEfl() || isGtk()), value => \$indexedDatabaseSupport },
+      define => "ENABLE_INDEXED_DATABASE", default => (isEfl() || isGtk() || isQt()), value => \$indexedDatabaseSupport },
 
     { option => "input-speech", desc => "Toggle Input Speech support",
       define => "ENABLE_INPUT_SPEECH", default => 0, value => \$inputSpeechSupport },
@@ -318,10 +320,10 @@ my @features = (
       define => "ENABLE_LEGACY_VENDOR_PREFIXES", default => 1, value => \$legacyVendorPrefixSupport },
 
     { option => "legacy-web-audio", desc => "Toggle Legacy Web Audio support",
-      define => "ENABLE_LEGACY_WEB_AUDIO", default => !isQt(), value => \$legacyWebAudioSupport },
+      define => "ENABLE_LEGACY_WEB_AUDIO", default => (!isQt() || isQtGstreamer()) , value => \$legacyWebAudioSupport },
 
     { option => "link-prefetch", desc => "Toggle Link Prefetch support",
-      define => "ENABLE_LINK_PREFETCH", default => (isGtk() || isEfl()), value => \$linkPrefetchSupport },
+      define => "ENABLE_LINK_PREFETCH", default => (isGtk() || isEfl() || isQt()), value => \$linkPrefetchSupport },
 
     { option => "jit", desc => "Enable just-in-time JavaScript support",
       define => "ENABLE_JIT", default => 1, value => \$jitSupport },
@@ -333,7 +335,7 @@ my @features = (
       define => "ENABLE_MEDIA_CAPTURE", default => isEfl(), value => \$mediaCaptureSupport },
 
     { option => "media-source", desc => "Toggle Media Source support",
-      define => "ENABLE_MEDIA_SOURCE", default => (isGtk() || isEfl()), value => \$mediaSourceSupport },
+      define => "ENABLE_MEDIA_SOURCE", default => (isGtk() || isEfl() || isQtGstreamer()), value => \$mediaSourceSupport },
 
     { option => "media-statistics", desc => "Toggle Media Statistics support",
       define => "ENABLE_MEDIA_STATISTICS", default => 0, value => \$mediaStatisticsSupport },
@@ -453,7 +455,7 @@ my @features = (
       define => "ENABLE_WEB_ANIMATIONS", default => 0, value => \$webAnimationsSupport },
 
     { option => "web-audio", desc => "Toggle Web Audio support",
-      define => "ENABLE_WEB_AUDIO", default => (isEfl() || isGtk()), value => \$webAudioSupport },
+      define => "ENABLE_WEB_AUDIO", default => (isEfl() || isGtk() || isQtGstreamer()), value => \$webAudioSupport },
 
     { option => "web-replay", desc => "Toggle Web Replay support",
       define => "ENABLE_WEB_REPLAY", default => isAppleMacWebKit(), value => \$webReplaySupport },
@@ -468,7 +470,7 @@ my @features = (
       define => "ENABLE_XSLT", default => 1, value => \$xsltSupport },
 
     { option => "ftl-jit", desc => "Toggle FTLJIT support",
-      define => "ENABLE_FTL_JIT", default => (isX86_64() && (isGtk() || isEfl()) || isQt()) , value => \$ftlJITSupport },
+      define => "ENABLE_FTL_JIT", default => (isX86_64() && (isGtk() || isEfl()) || (isQt() && !isAnyWindows())) , value => \$ftlJITSupport },
 );
 
 sub getFeatureOptionList()

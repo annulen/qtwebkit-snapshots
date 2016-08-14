@@ -1,4 +1,6 @@
 include(ECMGenerateHeaders)
+include(ECMGeneratePkgConfigFile)
+include(ECMGeneratePriFile)
 
 list(APPEND WebKit_INCLUDE_DIRECTORIES
     "${WEBCORE_DIR}"
@@ -151,15 +153,6 @@ list(REMOVE_ITEM WebKit_SOURCES
 )
 
 list(APPEND WebKit_SOURCES
-    Storage/StorageAreaImpl.cpp
-    Storage/StorageAreaSync.cpp
-    Storage/StorageNamespaceImpl.cpp
-    Storage/StorageSyncManager.cpp
-    Storage/StorageThread.cpp
-    Storage/StorageTracker.cpp
-    Storage/WebDatabaseProvider.cpp
-    Storage/WebStorageNamespaceProvider.cpp
-
     qt/Api/qhttpheader.cpp
     qt/Api/qwebdatabase.cpp
     qt/Api/qwebelement.cpp
@@ -197,6 +190,7 @@ list(APPEND WebKit_SOURCES
     qt/WebCoreSupport/TextureMapperLayerClientQt.cpp
     qt/WebCoreSupport/UndoStepQt.cpp
     qt/WebCoreSupport/VisitedLinkStoreQt.cpp
+    qt/WebCoreSupport/WebDatabaseProviderQt.cpp
     qt/WebCoreSupport/WebEventConversion.cpp
 )
 
@@ -214,12 +208,13 @@ list(APPEND WebKit_SYSTEM_INCLUDE_DIRECTORIES
 list(REMOVE_DUPLICATES WebKit_SYSTEM_INCLUDE_DIRECTORIES)
 
 list(APPEND WebKit_LIBRARIES
+    PRIVATE
+        ${ICU_LIBRARIES}
+        ${Qt5Positioning_LIBRARIES}
     PUBLIC
-    ${ICU_LIBRARIES}
-    ${Qt5Core_LIBRARIES}
-    ${Qt5Gui_LIBRARIES}
-    ${Qt5Network_LIBRARIES}
-    ${Qt5Positioning_LIBRARIES}
+        ${Qt5Core_LIBRARIES}
+        ${Qt5Gui_LIBRARIES}
+        ${Qt5Network_LIBRARIES}
 )
 
 if (ENABLE_GEOLOCATION)
@@ -293,6 +288,28 @@ install(
         ${CMAKE_INSTALL_PREFIX}/include/QtWebKit/${PROJECT_VERSION}/QtWebKit/private
 )
 
+ecm_generate_pkgconfig_file(
+    BASE_NAME Qt5WebKit
+    LIB_INSTALL_DIR "lib"
+    DEPS "Qt5Core Qt5Gui Qt5Network"
+    FILENAME_VAR WebKit_PKGCONFIG_FILENAME
+    INSTALL
+)
+
+ecm_generate_pri_file(
+    BASE_NAME webkit
+    LIB_NAME QtWebKit
+    INCLUDE_INSTALL_DIR "include"
+    INCLUDE_INSTALL_DIR2 "include/QtWebKit"
+    DEPS "core gui network"
+    RUNTIME_DEPS "sensors positioning qml quick webchannel sql core_private gui_private"
+    DEFINES QT_WEBKIT_LIB
+    SET_RPATH ON
+    QT_MODULES webkit
+    FILENAME_VAR WebKit_PRI_FILENAME
+)
+install(FILES ${WebKit_PRI_FILENAME} DESTINATION ${ECM_MKSPECS_INSTALL_DIR})
+
 set(WebKit_LIBRARY_TYPE SHARED)
 set(WebKit_OUTPUT_NAME Qt5WebKit)
 
@@ -316,6 +333,7 @@ set(WebKitWidgets_SOURCES
     qt/WidgetApi/qwebframe.cpp
     qt/WidgetApi/qwebinspector.cpp
     qt/WidgetApi/qwebpage.cpp
+    qt/WidgetApi/qwebpage_p.cpp
     qt/WidgetApi/qwebview.cpp
     qt/WidgetApi/qwebviewaccessible.cpp
 
@@ -337,8 +355,11 @@ set(WebKitWidgets_SYSTEM_INCLUDE_DIRECTORIES
 )
 
 set(WebKitWidgets_LIBRARIES
-    ${Qt5Widgets_LIBRARIES}
-    WebKit
+    PRIVATE
+        ${Qt5PrintSupport_LIBRARIES}
+    PUBLIC
+        ${Qt5Widgets_LIBRARIES}
+        WebKit
 )
 
 if (USE_QT_MULTIMEDIA)
@@ -390,6 +411,28 @@ install(
         ${CMAKE_INSTALL_PREFIX}/include/QtWebKitWidgets/${PROJECT_VERSION}/QtWebKitWidgets/private
 )
 
+ecm_generate_pkgconfig_file(
+    BASE_NAME Qt5WebKitWidgets
+    LIB_INSTALL_DIR "lib"
+    DEPS "Qt5Core Qt5Gui Qt5Network Qt5Widgets Qt5WebKit"
+    FILENAME_VAR WebKitWidgets_PKGCONFIG_FILENAME
+    INSTALL
+)
+
+ecm_generate_pri_file(
+    BASE_NAME webkitwidgets
+    LIB_NAME QtWebKitWidgets
+    INCLUDE_INSTALL_DIR "include"
+    INCLUDE_INSTALL_DIR2 "include/QtWebKitWidgets"
+    DEPS "core gui network widgets webkit"
+    RUNTIME_DEPS "sensors positioning widgets_private printsupport opengl sql core_private gui_private"
+    DEFINES QT_WEBKITWIDGETS_LIB
+    SET_RPATH ON
+    QT_MODULES webkitwidgets
+    FILENAME_VAR WebKitWidgets_PRI_FILENAME
+)
+install(FILES ${WebKitWidgets_PRI_FILENAME} DESTINATION ${ECM_MKSPECS_INSTALL_DIR})
+
 if (WIN32)
     if (CMAKE_SIZEOF_VOID_P EQUAL 8)
         enable_language(ASM_MASM)
@@ -436,8 +479,31 @@ set(WebKitWidgets_OUTPUT_NAME Qt5WebKitWidgets)
 
 WEBKIT_FRAMEWORK(WebKitWidgets)
 add_dependencies(WebKitWidgets WebKit)
-
 set_target_properties(WebKitWidgets PROPERTIES VERSION ${PROJECT_VERSION} SOVERSION ${PROJECT_VERSION_MAJOR})
-install(TARGETS WebKitWidgets DESTINATION "${LIB_INSTALL_DIR}")
+install(TARGETS WebKitWidgets EXPORT Qt5WebKitWidgetsTargets
+        DESTINATION "${LIB_INSTALL_DIR}"
+        INCLUDES DESTINATION "${CMAKE_INSTALL_PREFIX}/include/QtWebKitWidgets"
+)
+
+if (COMPILER_IS_GCC_OR_CLANG)
+    set_source_files_properties(
+        qt/Api/qwebdatabase.cpp
+        qt/Api/qwebelement.cpp
+        qt/Api/qwebhistory.cpp
+        qt/Api/qwebhistoryinterface.cpp
+        qt/Api/qwebpluginfactory.cpp
+        qt/Api/qwebscriptworld.cpp
+        qt/Api/qwebsecurityorigin.cpp
+        qt/Api/qwebsettings.cpp
+
+        qt/WidgetApi/qgraphicswebview.cpp
+        qt/WidgetApi/qwebframe.cpp
+        qt/WidgetApi/qwebinspector.cpp
+        qt/WidgetApi/qwebpage.cpp
+        qt/WidgetApi/qwebview.cpp
+    PROPERTIES
+        COMPILE_FLAGS -frtti
+    )
+endif ()
 
 add_subdirectory(qt/tests)

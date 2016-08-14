@@ -80,13 +80,13 @@ public:
         JavascriptCanCloseWindows,
         WebGLEnabled,
         CSSRegionsEnabled,
-        CSSCompositingEnabled,
         HyperlinkAuditingEnabled,
         CSSGridLayoutEnabled,
         ScrollAnimatorEnabled,
         CaretBrowsingEnabled,
         NotificationsEnabled,
-        WebAudioEnabled
+        WebAudioEnabled,
+        MediaSourceEnabled,
     };
     enum WebGraphic {
         MissingImageGraphic,

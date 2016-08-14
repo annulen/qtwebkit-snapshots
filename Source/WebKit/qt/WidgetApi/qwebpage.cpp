@@ -33,7 +33,6 @@
 #include "QtFallbackWebPopup.h"
 #include "QtPlatformPlugin.h"
 #include "UndoStepQt.h"
-#include "WebEventConversion.h"
 
 #include "qwebframe.h"
 #include "qwebframe_p.h"
@@ -214,30 +213,6 @@ QWebPagePrivate::QWebPagePrivate(QWebPage *qq)
         setSystemTrayIcon(new QSystemTrayIcon);
 #endif // QT_NO_SYSTEMTRAYICON
 #endif // ENABLE(NOTIFICATIONS) || ENABLE(LEGACY_NOTIFICATIONS)
-}
-
-QWebPagePrivate::~QWebPagePrivate()
-{
-#ifndef QT_NO_CONTEXTMENU
-    delete currentContextMenu.data();
-#endif
-#ifndef QT_NO_UNDOSTACK
-    delete undoStack;
-    undoStack = 0;
-#endif
-    
-    if (inspector) {
-        // If the inspector is ours, delete it, otherwise just detach from it.
-        if (inspectorIsInternalOnly)
-            delete inspector;
-        else
-            inspector->setPage(0);
-    }
-    // Explicitly destruct the WebCore page at this point when the
-    // QWebPagePrivate / QWebPageAdapater vtables are still intact,
-    // in order for various destruction callbacks out of WebCore to
-    // work.
-    deletePage();
 }
 
 void QWebPagePrivate::show()

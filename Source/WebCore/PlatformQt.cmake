@@ -24,6 +24,7 @@ list(APPEND WebCore_INCLUDE_DIRECTORIES
     "${JAVASCRIPTCORE_DIR}/yarr"
     "${THIRDPARTY_DIR}/ANGLE/"
     "${THIRDPARTY_DIR}/ANGLE/include/KHR"
+    "${WEBCORE_DIR}/Modules/gamepad"
     "${WEBCORE_DIR}/bridge/qt"
     "${WEBCORE_DIR}/history/qt"
     "${WEBCORE_DIR}/platform/qt"
@@ -152,7 +153,7 @@ if (ENABLE_DEVICE_ORIENTATION)
     )
 endif ()
 
-if (ENABLE_GAMEPAD)
+if (ENABLE_GAMEPAD_DEPRECATED)
     list(APPEND WebCore_SOURCES
         platform/qt/GamepadsQt.cpp
     )
@@ -187,6 +188,7 @@ list(APPEND WebCore_SYSTEM_INCLUDE_DIRECTORIES
     ${Qt5Gui_INCLUDE_DIRS}
     ${Qt5Gui_PRIVATE_INCLUDE_DIRS}
     ${Qt5Network_INCLUDE_DIRS}
+    ${Qt5Sensors_INCLUDE_DIRS}
     ${Qt5Sql_INCLUDE_DIRS}
     ${SQLITE_INCLUDE_DIR}
     ${ZLIB_INCLUDE_DIRS}
@@ -199,6 +201,7 @@ list(APPEND WebCore_LIBRARIES
     ${Qt5Core_LIBRARIES}
     ${Qt5Gui_LIBRARIES}
     ${Qt5Network_LIBRARIES}
+    ${Qt5Sensors_LIBRARIES}
     ${Qt5Sql_LIBRARIES}
     ${SQLITE_LIBRARIES}
     ${ZLIB_LIBRARIES}
@@ -290,6 +293,11 @@ endif ()
 
 # From PlatformWin.cmake
 if (WIN32)
+
+    if (${JavaScriptCore_LIBRARY_TYPE} MATCHES STATIC)
+        add_definitions(-DSTATICALLY_LINKED_WITH_WTF -DSTATICALLY_LINKED_WITH_JavaScriptCore)
+    endif ()
+
     list(APPEND WebCore_INCLUDE_DIRECTORIES
         "${CMAKE_BINARY_DIR}/../include/private"
         "${CMAKE_BINARY_DIR}/../include/private/JavaScriptCore"
