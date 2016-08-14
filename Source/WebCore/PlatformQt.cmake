@@ -29,10 +29,13 @@ list(APPEND WebCore_INCLUDE_DIRECTORIES
     "${WEBCORE_DIR}/history/qt"
     "${WEBCORE_DIR}/platform/qt"
     "${WEBCORE_DIR}/platform/audio/qt"
-    "${WEBCORE_DIR}/platform/graphics/qt"
+    "${WEBCORE_DIR}/platform/graphics/egl"
+    "${WEBCORE_DIR}/platform/graphics/glx"
     "${WEBCORE_DIR}/platform/graphics/gpu/qt"
+    "${WEBCORE_DIR}/platform/graphics/opengl"
     "${WEBCORE_DIR}/platform/graphics/surfaces"
     "${WEBCORE_DIR}/platform/graphics/surfaces/qt"
+    "${WEBCORE_DIR}/platform/graphics/qt"
     "${WEBCORE_DIR}/platform/network/qt"
     "${WEBCORE_DIR}/platform/text/qt"
     "${WTF_DIR}"
@@ -144,6 +147,13 @@ list(APPEND WebCore_SOURCES
     platform/text/qt/TextBreakIteratorInternalICUQt.cpp
 )
 
+if (SQLITE_SOURCE_FILE)
+    list(APPEND WebCore_SOURCES
+        "${SQLITE_SOURCE_FILE}"
+    )
+    add_definitions(-DSQLITE_CORE -DSQLITE_OMIT_LOAD_EXTENSION -DSQLITE_OMIT_COMPLETE)
+endif ()
+
 if (ENABLE_DEVICE_ORIENTATION)
     list(APPEND WebCore_SOURCES
         platform/qt/DeviceMotionClientQt.cpp
@@ -162,6 +172,23 @@ endif ()
 if (ENABLE_GRAPHICS_CONTEXT_3D)
     list(APPEND WebCore_SOURCES
         platform/graphics/qt/GraphicsContext3DQt.cpp
+    )
+endif ()
+
+if (ENABLE_NETSCAPE_PLUGIN_API AND WIN32)
+    set(WebCore_FORWARDING_HEADERS_FILES
+        platform/graphics/win/LocalWindowsContext.h
+        platform/win/BitmapInfo.h
+        platform/win/WebCoreInstanceHandle.h
+    )
+    list(APPEND WebCore_SOURCES
+        platform/graphics/win/TransformationMatrixWin.cpp
+        platform/win/BitmapInfo.cpp
+        platform/win/WebCoreInstanceHandle.cpp
+    )
+    list(APPEND WebCore_LIBRARIES
+        Shlwapi
+        version
     )
 endif ()
 
@@ -215,6 +242,39 @@ list(APPEND WebCore_USER_AGENT_STYLE_SHEETS
     ${WEBCORE_DIR}/css/themeQtNoListboxes.css
 )
 
+if (ENABLE_OPENGL)
+    list(APPEND WebCore_SOURCES
+        platform/graphics/OpenGLShims.cpp
+
+        platform/graphics/opengl/Extensions3DOpenGLCommon.cpp
+        platform/graphics/opengl/GraphicsContext3DOpenGLCommon.cpp
+        platform/graphics/opengl/TemporaryOpenGLSetting.cpp
+    )
+
+    if (${Qt5Gui_OPENGL_IMPLEMENTATION} STREQUAL GLESv2)
+        list(APPEND WebCore_SOURCES
+            platform/graphics/opengl/Extensions3DOpenGLES.cpp
+            platform/graphics/opengl/GraphicsContext3DOpenGLES.cpp
+        )
+    elseif (${Qt5Gui_OPENGL_IMPLEMENTATION} STREQUAL GL)
+        list(APPEND WebCore_SOURCES
+            platform/graphics/opengl/Extensions3DOpenGL.cpp
+            platform/graphics/opengl/GraphicsContext3DOpenGL.cpp
+        )
+    else ()
+        message(FATAL_ERROR "Unsupported Qt OpenGL implementation ${Qt5Gui_OPENGL_IMPLEMENTATION}")
+    endif ()
+
+    list(APPEND WebCore_SYSTEM_INCLUDE_DIRECTORIES
+        ${Qt5Gui_EGL_INCLUDE_DIRS}
+        ${Qt5Gui_OPENGL_INCLUDE_DIRS}
+    )
+    list(APPEND WebCore_LIBRARIES
+        ${Qt5Gui_EGL_LIBRARIES}
+        ${Qt5Gui_OPENGL_LIBRARIES}
+    )
+endif ()
+
 if (USE_GLIB)
     list(APPEND WebCore_SYSTEM_INCLUDE_DIRECTORIES
         ${GIO_UNIX_INCLUDE_DIRS}
@@ -259,15 +319,24 @@ list(REMOVE_DUPLICATES WebCore_SYSTEM_INCLUDE_DIRECTORIES)
 
 # TODO: Think how to unify fwd headers handling throughout WebKit
 set(WebCore_FORWARDING_HEADERS_DIRECTORIES
+    bridge
     dom
+    html
     loader
     page
     platform
+    rendering
     storage
 
     Modules/indexeddb/legacy
     Modules/indexeddb/shared
 
+    bindings/js
+
+    bridge/c
+    bridge/jsc
+
+    platform/graphics
     platform/network
     platform/sql
     platform/text
@@ -276,10 +345,6 @@ set(WebCore_FORWARDING_HEADERS_DIRECTORIES
 )
 
 WEBKIT_CREATE_FORWARDING_HEADERS(WebCore DIRECTORIES ${WebCore_FORWARDING_HEADERS_DIRECTORIES} FILES ${WebCore_FORWARDING_HEADERS_FILES})
-
-list(APPEND WebCoreTestSupport_SOURCES
-    platform/qt/QtTestSupport.cpp
-)
 
 list(APPEND WebCoreTestSupport_LIBRARIES
     WebCore
@@ -336,6 +401,9 @@ if (WIN32)
     file(WRITE "${WebCore_PRE_BUILD_COMMAND}" "@xcopy /y /s /d /f \"${WEBCORE_DIR}/ForwardingHeaders/*.h\" \"${DERIVED_SOURCES_DIR}/ForwardingHeaders/WebCore\" >nul 2>nul\n")
     foreach (_directory ${WebCore_FORWARDING_HEADERS_DIRECTORIES})
         file(APPEND "${WebCore_PRE_BUILD_COMMAND}" "@xcopy /y /d /f \"${WEBCORE_DIR}/${_directory}/*.h\" \"${DERIVED_SOURCES_DIR}/ForwardingHeaders/WebCore\" >nul 2>nul\n")
+    endforeach ()
+    foreach (_file ${WebCore_FORWARDING_HEADERS_FILES})
+        file(APPEND "${WebCore_PRE_BUILD_COMMAND}" "@xcopy /y /d /f \"${WEBCORE_DIR}/${_file}\" \"${DERIVED_SOURCES_DIR}/ForwardingHeaders/WebCore\" >nul 2>nul\n")
     endforeach ()
 
     set(WebCore_POST_BUILD_COMMAND "${CMAKE_BINARY_DIR}/DerivedSources/WebCore/postBuild.cmd")

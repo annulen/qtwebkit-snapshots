@@ -57,21 +57,17 @@ typedef char GLchar;
 #endif
 
 class GraphicsContext3DPrivate
-#if USE(ACCELERATED_COMPOSITING)
         : public TextureMapperPlatformLayer
-#endif
 {
 public:
     GraphicsContext3DPrivate(GraphicsContext3D*, HostWindow*, GraphicsContext3D::RenderStyle);
     ~GraphicsContext3DPrivate();
 
-#if USE(ACCELERATED_COMPOSITING)
-    virtual void paintToTextureMapper(TextureMapper*, const FloatRect& target, const TransformationMatrix&, float opacity);
-#endif
+    void paintToTextureMapper(TextureMapper&, const FloatRect& target, const TransformationMatrix&, float opacity) override;
 #if USE(GRAPHICS_SURFACE)
-    virtual IntSize platformLayerSize() const;
-    virtual uint32_t copyToGraphicsSurface();
-    virtual GraphicsSurfaceToken graphicsSurfaceToken() const;
+    IntSize platformLayerSize() const override;
+    uint32_t copyToGraphicsSurface() override;
+    GraphicsSurfaceToken graphicsSurfaceToken() const override;
 #endif
 
     QRectF boundingRect() const;
@@ -217,14 +213,14 @@ static inline quint32 swapBgrToRgb(quint32 pixel)
     return (((pixel << 16) | (pixel >> 16)) & 0x00ff00ff) | (pixel & 0xff00ff00);
 }
 
-#if USE(ACCELERATED_COMPOSITING)
-void GraphicsContext3DPrivate::paintToTextureMapper(TextureMapper* textureMapper, const FloatRect& targetRect, const TransformationMatrix& matrix, float opacity)
+void GraphicsContext3DPrivate::paintToTextureMapper(TextureMapper& textureMapper, const FloatRect& targetRect, const TransformationMatrix& matrix, float opacity)
 {
     m_context->markLayerComposited();
     blitMultisampleFramebufferAndRestoreContext();
 
-    if (textureMapper->accelerationMode() == TextureMapper::OpenGLMode) {
-        TextureMapperGL* texmapGL = static_cast<TextureMapperGL*>(textureMapper);
+    // FIXME: For now we have OpenGLMode only
+//    if (textureMapper->accelerationMode() == TextureMapper::OpenGLMode) {
+        TextureMapperGL& texmapGL = static_cast<TextureMapperGL&>(textureMapper);
 #if USE(GRAPHICS_SURFACE)
         ASSERT(m_graphicsSurface);
         // CGL only provides us the context, but not the view the context is currently bound to.
@@ -245,12 +241,12 @@ void GraphicsContext3DPrivate::paintToTextureMapper(TextureMapper* textureMapper
 #else
         TextureMapperGL::Flags flags = TextureMapperGL::ShouldFlipTexture | (m_context->m_attrs.alpha ? TextureMapperGL::ShouldBlend : 0);
         IntSize textureSize(m_context->m_currentWidth, m_context->m_currentHeight);
-        texmapGL->drawTexture(m_context->m_texture, flags, textureSize, targetRect, matrix, opacity);
+        texmapGL.drawTexture(m_context->m_texture, flags, textureSize, targetRect, matrix, opacity);
 #endif
         return;
-    }
+//    }
 
-    GraphicsContext* context = textureMapper->graphicsContext();
+    GraphicsContext* context = textureMapper.graphicsContext();
     QPainter* painter = context->platformContext();
     painter->save();
     painter->setTransform(matrix);
@@ -293,7 +289,6 @@ void GraphicsContext3DPrivate::paintToTextureMapper(TextureMapper* textureMapper
     painter->drawImage(targetRect, offscreenImage);
     painter->restore();
 }
-#endif // USE(ACCELERATED_COMPOSITING)
 
 #if USE(GRAPHICS_SURFACE)
 IntSize GraphicsContext3DPrivate::platformLayerSize() const
@@ -401,7 +396,7 @@ GraphicsContext3D::GraphicsContext3D(GraphicsContext3D::Attributes attrs, HostWi
     , m_multisampleFBO(0)
     , m_multisampleDepthStencilBuffer(0)
     , m_multisampleColorBuffer(0)
-    , m_private(adoptPtr(new GraphicsContext3DPrivate(this, hostWindow, renderStyle)))
+    , m_private(std::make_unique<GraphicsContext3DPrivate>(this, hostWindow, renderStyle))
 {
     validateAttributes();
 
@@ -471,12 +466,10 @@ Platform3DObject GraphicsContext3D::platformTexture() const
     return m_texture;
 }
 
-#if USE(ACCELERATED_COMPOSITING)
 PlatformLayer* GraphicsContext3D::platformLayer() const
 {
     return m_private.get();
 }
-#endif
 
 bool GraphicsContext3D::makeContextCurrent()
 {
@@ -556,11 +549,15 @@ bool GraphicsContext3D::ImageExtractor::extractImage(bool premultiplyAlpha, bool
     return true;
 }
 
-void GraphicsContext3D::setContextLostCallback(PassOwnPtr<ContextLostCallback>)
+void GraphicsContext3D::checkGPUStatusIfNecessary()
 {
 }
 
-void GraphicsContext3D::setErrorMessageCallback(PassOwnPtr<ErrorMessageCallback>)
+void GraphicsContext3D::setContextLostCallback(std::unique_ptr<ContextLostCallback>)
+{
+}
+
+void GraphicsContext3D::setErrorMessageCallback(std::unique_ptr<ErrorMessageCallback>)
 {
 }
 

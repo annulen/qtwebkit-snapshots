@@ -59,10 +59,8 @@
 #include "NotificationPresenterClientQt.h"
 #include "Page.h"
 #include "PageGroup.h"
-#if !PLUGIN_VIEW_IS_BROKEN
 #include "PluginDatabase.h"
 #include "PluginView.h"
-#endif
 #include "PositionError.h"
 #include "PrintContext.h"
 #include "ProgressTrackerClientQt.h"
@@ -205,7 +203,6 @@ void DumpRenderTreeSupportQt::initialize()
 
 void DumpRenderTreeSupportQt::overwritePluginDirectories()
 {
-#if !PLUGIN_VIEW_IS_BROKEN
     PluginDatabase* db = PluginDatabase::installedPlugins(/* populate */ false);
 
     Vector<String> paths;
@@ -214,7 +211,6 @@ void DumpRenderTreeSupportQt::overwritePluginDirectories()
 
     db->setPluginDirectories(paths);
     db->refresh();
-#endif
 }
 
 void DumpRenderTreeSupportQt::setDumpRenderTreeModeEnabled(bool b)
@@ -265,13 +261,9 @@ bool DumpRenderTreeSupportQt::hasDocumentElement(QWebFrameAdapter *adapter)
 void DumpRenderTreeSupportQt::setValueForUser(const QWebElement& element, const QString& value)
 {
     WebCore::Element* webElement = element.m_element;
-    if (!webElement)
+    if (!webElement || !is<HTMLInputElement>(webElement))
         return;
-    HTMLInputElement* inputElement = downcast<HTMLInputElement>(webElement);
-    if (!inputElement)
-        return;
-
-    inputElement->setValueForUser(value);
+    downcast<HTMLInputElement>(*webElement).setValueForUser(value);
 }
 
 void DumpRenderTreeSupportQt::clearFrameName(QWebFrameAdapter *adapter)
@@ -280,7 +272,7 @@ void DumpRenderTreeSupportQt::clearFrameName(QWebFrameAdapter *adapter)
     coreFrame->tree().clearName();
 }
 
-int DumpRenderTreeSupportQt::javaScriptObjectsCount()
+size_t DumpRenderTreeSupportQt::javaScriptObjectsCount()
 {
     return JSDOMWindowBase::commonVM().heap.globalObjectCount();
 }
@@ -715,11 +707,11 @@ QUrl DumpRenderTreeSupportQt::mediaContentUrlByElementId(QWebFrameAdapter* adapt
     if (!doc)
         return res;
 
-    Node* coreNode = doc->getElementById(elementId);
+    Node* coreNode = doc->getElementById(String(elementId));
     if (!coreNode)
         return res;
 
-    HTMLVideoElement* videoElement = toHTMLVideoElement(coreNode);
+    HTMLVideoElement* videoElement = downcast<HTMLVideoElement>(coreNode);
     PlatformMedia platformMedia = videoElement->platformMedia();
     if (platformMedia.type != PlatformMedia::QtMediaPlayerType)
         return res;
@@ -861,15 +853,6 @@ void DumpRenderTreeSupportQt::getTrackedRepaintRects(QWebFrameAdapter* adapter, 
     result.resize(rects.size());
     for (size_t i = 0; i < rects.size(); ++i)
         result.append(rects[i]);
-}
-
-void DumpRenderTreeSupportQt::setSeamlessIFramesEnabled(bool enabled)
-{
-#if ENABLE(IFRAME_SEAMLESS)
-    WebCore::RuntimeEnabledFeatures::sharedFeatures().setSeamlessIFramesEnabled(enabled);
-#else
-    UNUSED_PARAM(enabled);
-#endif
 }
 
 void DumpRenderTreeSupportQt::setShouldUseFontSmoothing(bool enabled)

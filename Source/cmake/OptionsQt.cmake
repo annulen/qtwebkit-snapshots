@@ -2,6 +2,31 @@ include(FeatureSummary)
 include(ECMPackageConfigHelpers)
 include(ECMQueryQmake)
 
+macro(macro_process_qtbase_prl_file qt_target_component)
+    if (TARGET ${qt_target_component})
+        get_target_property(_lib_name ${qt_target_component} NAME)
+        string(REGEX REPLACE "::" "" _lib_name ${_lib_name})
+        get_target_property(_lib_location ${qt_target_component} LOCATION)
+        get_target_property(_prl_file_location ${qt_target_component} LOCATION)
+        string(REGEX REPLACE "^(.+/lib${_lib_name}).+$" "\\1.prl" _prl_file_location ${_prl_file_location})
+        get_target_property(_link_libs ${qt_target_component} INTERFACE_LINK_LIBRARIES)
+        if (_link_libs)
+            set(_list_sep ";")
+        else ()
+            set(_list_sep "")
+        endif ()
+        if (EXISTS ${_prl_file_location})
+            file(STRINGS ${_prl_file_location} prl_strings REGEX "QMAKE_PRL_LIBS")
+            string(REGEX REPLACE "QMAKE_PRL_LIBS *= *([^\n]*)" "\\1" static_depends ${prl_strings})
+            string(STRIP ${static_depends} static_depends)
+            set_target_properties(${qt_target_component} PROPERTIES
+                "INTERFACE_LINK_LIBRARIES" "${_link_libs}${_list_sep}${static_depends}"
+                "IMPORTED_LOCATION" "${_lib_location}"
+            )
+        endif ()
+    endif ()
+endmacro()
+
 set(PROJECT_VERSION_MAJOR 5)
 set(PROJECT_VERSION_MINOR 602)
 set(PROJECT_VERSION_MICRO 0)
@@ -9,6 +34,10 @@ set(PROJECT_VERSION ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_
 set(PROJECT_VERSION_STRING "${PROJECT_VERSION}")
 
 add_definitions(-DBUILDING_QT__=1)
+
+if (CMAKE_COMPILER_IS_GNUCXX OR "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+    set(COMPILER_IS_GCC_OR_CLANG ON)
+endif ()
 
 WEBKIT_OPTION_BEGIN()
 
@@ -34,12 +63,28 @@ else ()
     set(ENABLE_FTL_DEFAULT OFF)
 endif ()
 
+if (UNIX AND NOT APPLE)
+    set(ENABLE_X11_TARGET_DEFAULT ON)
+else ()
+    set(ENABLE_X11_TARGET_DEFAULT OFF)
+endif ()
+
+if (NOT APPLE)
+    set(ENABLE_NETSCAPE_PLUGIN_API_DEFAULT ON)
+else ()
+    set(ENABLE_NETSCAPE_PLUGIN_API_DEFAULT OFF)
+endif ()
+
 WEBKIT_OPTION_DEFINE(USE_GSTREAMER "Use GStreamer implementation of MediaPlayer" PUBLIC ${USE_GSTREAMER_DEFAULT})
 WEBKIT_OPTION_DEFINE(USE_LIBHYPHEN "Use automatic hyphenation with LibHyphen" PUBLIC ${USE_LIBHYPHEN_DEFAULT})
 WEBKIT_OPTION_DEFINE(USE_QT_MULTIMEDIA "Use Qt Multimedia implementation of MediaPlayer" PUBLIC ${USE_QT_MULTIMEDIA_DEFAULT})
 WEBKIT_OPTION_DEFINE(ENABLE_INSPECTOR_UI "Include Inspector UI into resources" PUBLIC ON)
+WEBKIT_OPTION_DEFINE(ENABLE_OPENGL "Whether to use OpenGL." PUBLIC OFF)
 WEBKIT_OPTION_DEFINE(ENABLE_PRINT_SUPPORT "Enable support for printing web pages" PUBLIC ON)
-WEBKIT_OPTION_DEFINE(GENERATE_DOCUMENTATION "Generate HTML and QCH documentation" PUBLIC OFF)
+WEBKIT_OPTION_DEFINE(ENABLE_X11_TARGET "Whether to enable support for the X11 windowing target." PUBLIC ${ENABLE_X11_TARGET_DEFAULT})
+
+option(GENERATE_DOCUMENTATION "Generate HTML and QCH documentation" OFF)
+option(ENABLE_TEST_SUPPORT "Build tools for running layout tests and related library code" ON)
 
 # Public options shared with other WebKit ports. There must be strong reason
 # to support changing the value of the option.
@@ -55,6 +100,7 @@ WEBKIT_OPTION_DEFAULT_PORT_VALUE(ENABLE_INDEXED_DATABASE PUBLIC ON)
 WEBKIT_OPTION_DEFAULT_PORT_VALUE(ENABLE_LEGACY_WEB_AUDIO PUBLIC ${USE_GSTREAMER_DEFAULT})
 WEBKIT_OPTION_DEFAULT_PORT_VALUE(ENABLE_LINK_PREFETCH PUBLIC ON)
 WEBKIT_OPTION_DEFAULT_PORT_VALUE(ENABLE_MEDIA_SOURCE PUBLIC ${USE_GSTREAMER_DEFAULT})
+WEBKIT_OPTION_DEFAULT_PORT_VALUE(ENABLE_NETSCAPE_PLUGIN_API PUBLIC ${ENABLE_NETSCAPE_PLUGIN_API_DEFAULT})
 WEBKIT_OPTION_DEFAULT_PORT_VALUE(ENABLE_XSLT PUBLIC ON)
 
 WEBKIT_OPTION_DEFAULT_PORT_VALUE(ENABLE_DRAG_SUPPORT PUBLIC ON)
@@ -75,6 +121,8 @@ WEBKIT_OPTION_DEFAULT_PORT_VALUE(ENABLE_CSS_IMAGE_SET PRIVATE ON)
 WEBKIT_OPTION_DEFAULT_PORT_VALUE(ENABLE_CSS_REGIONS PRIVATE ON)
 WEBKIT_OPTION_DEFAULT_PORT_VALUE(ENABLE_CSS_SHAPES PRIVATE ON)
 WEBKIT_OPTION_DEFAULT_PORT_VALUE(ENABLE_CSS_SELECTORS_LEVEL4 PRIVATE ON)
+WEBKIT_OPTION_DEFAULT_PORT_VALUE(ENABLE_DOM4_EVENTS_CONSTRUCTOR PRIVATE ON)
+WEBKIT_OPTION_DEFAULT_PORT_VALUE(ENABLE_DOWNLOAD_ATTRIBUTE PRIVATE ON)
 WEBKIT_OPTION_DEFAULT_PORT_VALUE(ENABLE_FTL_JIT PRIVATE ${ENABLE_FTL_DEFAULT})
 WEBKIT_OPTION_DEFAULT_PORT_VALUE(ENABLE_FTPDIR PRIVATE OFF)
 WEBKIT_OPTION_DEFAULT_PORT_VALUE(ENABLE_INPUT_TYPE_COLOR PRIVATE ON)
@@ -86,8 +134,6 @@ WEBKIT_OPTION_DEFAULT_PORT_VALUE(ENABLE_VIDEO_TRACK PRIVATE ON)
 WEBKIT_OPTION_DEFAULT_PORT_VALUE(ENABLE_WEB_TIMING PRIVATE ON)
 
 WEBKIT_OPTION_DEPEND(ENABLE_MEDIA_SOURCE ENABLE_VIDEO)
-WEBKIT_OPTION_DEPEND(USE_GSTREAMER ENABLE_VIDEO)
-WEBKIT_OPTION_DEPEND(USE_QT_MULTIMEDIA ENABLE_VIDEO)
 
 WEBKIT_OPTION_END()
 
@@ -109,8 +155,20 @@ set(ENABLE_WEBKIT ON)
 set(ENABLE_WEBKIT2 OFF)
 set(WTF_USE_UDIS86 1)
 
-if (NOT SHARED_CORE)
+
+get_target_property(QT_CORE_TYPE Qt5::Core TYPE)
+if (QT_CORE_TYPE MATCHES STATIC)
+    set(QT_STATIC_BUILD ON)
+endif ()
+if (QT_STATIC_BUILD)
+    set(SHARED_CORE OFF)
+endif ()
+
+if (SHARED_CORE)
+    set(WebCoreTestSupport_LIBRARY_TYPE SHARED)
+else ()
     set(JavaScriptCore_LIBRARY_TYPE STATIC)
+    set(WebCoreTestSupport_LIBRARY_TYPE STATIC)
 endif ()
 
 SET_AND_EXPOSE_TO_BUILD(USE_TEXTURE_MAPPER TRUE)
@@ -154,7 +212,15 @@ endif ()
 find_package(LibXml2 2.8.0 REQUIRED)
 find_package(JPEG REQUIRED)
 find_package(PNG REQUIRED)
-find_package(Sqlite REQUIRED)
+if (DEFINED ENV{SQLITE3SRCDIR})
+    set(SQLITE_SOURCE_FILE $ENV{SQLITE3SRCDIR}/sqlite3.c)
+    if (NOT EXISTS ${SQLITE_SOURCE_FILE})
+        message(FATAL_ERROR "${SQLITE_SOURCE_FILE} not found.")
+    endif ()
+    set(SQLITE_INCLUDE_DIR $ENV{SQLITE3SRCDIR})
+else ()
+    find_package(Sqlite REQUIRED)
+endif ()
 find_package(ZLIB REQUIRED)
 find_package(Threads REQUIRED)
 
@@ -167,7 +233,6 @@ else ()
         "${WTF_DIR}/icu"
     )
     set(ICU_LIBRARIES libicucore.dylib)
-
     find_library(COREFOUNDATION_LIBRARY CoreFoundation)
 endif ()
 
@@ -188,15 +253,46 @@ if (WEBP_FOUND)
 endif ()
 
 set(REQUIRED_QT_VERSION 5.2.0)
-find_package(Qt5Core ${REQUIRED_QT_VERSION} REQUIRED)
-find_package(Qt5Gui ${REQUIRED_QT_VERSION} REQUIRED)
-find_package(Qt5Network ${REQUIRED_QT_VERSION} REQUIRED)
-find_package(Qt5Sql ${REQUIRED_QT_VERSION} REQUIRED)
+
+
+set(QT_REQUIRED_COMPONENTS Core Gui Network Sql)
 
 # FIXME: Allow building w/o these components
-find_package(Qt5OpenGL ${REQUIRED_QT_VERSION})
-find_package(Qt5Test ${REQUIRED_QT_VERSION} REQUIRED)
-find_package(Qt5Widgets ${REQUIRED_QT_VERSION} REQUIRED)
+list(APPEND QT_REQUIRED_COMPONENTS
+    Widgets
+)
+set(QT_OPTIONAL_COMPONENTS OpenGL)
+
+if (ENABLE_TEST_SUPPORT)
+    list(APPEND QT_REQUIRED_COMPONENTS
+        Test
+    )
+endif ()
+
+find_package(Qt5 ${REQUIRED_QT_VERSION} REQUIRED COMPONENTS ${QT_REQUIRED_COMPONENTS})
+if (QT_STATIC_BUILD)
+    foreach (qt_module ${QT_REQUIRED_COMPONENTS})
+        macro_process_qtbase_prl_file(Qt5::${qt_module})
+    endforeach ()
+endif ()
+foreach (qt_module ${QT_OPTIONAL_COMPONENTS})
+    find_package("Qt5${qt_module}" ${REQUIRED_QT_VERSION})
+    if (QT_STATIC_BUILD)
+        macro_process_qtbase_prl_file(Qt5::${qt_module})
+    endif ()
+endforeach ()
+
+if (COMPILER_IS_GCC_OR_CLANG AND UNIX)
+    if (APPLE OR CMAKE_SYSTEM_NAME MATCHES "Android" OR ${Qt5_VERSION} VERSION_LESS 5.6)
+        set(USE_LINKER_VERSION_SCRIPT_DEFAULT OFF)
+    else ()
+        set(USE_LINKER_VERSION_SCRIPT_DEFAULT ON)
+    endif ()
+else ()
+    set(USE_LINKER_VERSION_SCRIPT_DEFAULT OFF)
+endif ()
+
+option(USE_LINKER_VERSION_SCRIPT "Use linker script for ABI compatibility with Qt libraries" ${USE_LINKER_VERSION_SCRIPT_DEFAULT})
 
 if (ENABLE_GEOLOCATION)
     find_package(Qt5Positioning ${REQUIRED_QT_VERSION} REQUIRED)
@@ -220,10 +316,6 @@ set(CMAKE_AUTOMOC ON)
 
 # TODO: figure out if we can run automoc only on Qt sources
 
-if (CMAKE_COMPILER_IS_GNUCXX OR "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-    set(COMPILER_IS_GCC_OR_CLANG ON)
-endif ()
-
 # From OptionsEfl.cmake
 # Optimize binary size for release builds by removing dead sections on unix/gcc.
 if (COMPILER_IS_GCC_OR_CLANG AND UNIX AND NOT APPLE)
@@ -232,15 +324,45 @@ if (COMPILER_IS_GCC_OR_CLANG AND UNIX AND NOT APPLE)
     set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "${CMAKE_SHARED_LINKER_FLAGS_RELEASE} -Wl,--gc-sections")
 
     if (NOT SHARED_CORE)
-        set(CMAKE_C_FLAGS_RELEASE "-fvisibility=hidden ${CMAKE_C_FLAGS_RELEASE}")
-        set(CMAKE_CXX_FLAGS_RELEASE "-fvisibility=hidden -fvisibility-inlines-hidden ${CMAKE_CXX_FLAGS_RELEASE}")
+        set(CMAKE_C_FLAGS "-fvisibility=hidden ${CMAKE_C_FLAGS}")
+        set(CMAKE_CXX_FLAGS "-fvisibility=hidden -fvisibility-inlines-hidden ${CMAKE_CXX_FLAGS}")
     endif ()
 endif ()
 
+SET_AND_EXPOSE_TO_BUILD(WTF_PLATFORM_X11 ${ENABLE_X11_TARGET})
 
-if (USE_GSTREAMER)
-    SET_AND_EXPOSE_TO_BUILD(USE_GLIB 1)
-    find_package(GLIB 2.36 REQUIRED COMPONENTS gio gobject)
+# MOZ_X11 and XP_UNIX are required by npapi.h. Their value is not checked;
+# only their definedness is. They should only be defined in the true case.
+if (${ENABLE_X11_TARGET})
+    SET_AND_EXPOSE_TO_BUILD(MOZ_X11 1)
+    set(PLUGIN_BACKEND_XLIB 1)
+endif ()
+if (${WTF_OS_UNIX})
+    SET_AND_EXPOSE_TO_BUILD(XP_UNIX 1)
+    SET_AND_EXPOSE_TO_BUILD(ENABLE_NETSCAPE_PLUGIN_METADATA_CACHE 1)
+    SET_AND_EXPOSE_TO_BUILD(ENABLE_PLUGIN_PACKAGE_SIMPLE_HASH 1)
+endif ()
+
+if (ENABLE_X11_TARGET)
+    find_package(X11 REQUIRED)
+    if (NOT X11_Xcomposite_FOUND)
+        message(FATAL_ERROR "libXcomposite is required for ENABLE_X11_TARGET")
+    elseif (NOT X11_Xrender_FOUND)
+        message(FATAL_ERROR "libXrender is required for ENABLE_X11_TARGET")
+    endif ()
+endif ()
+
+if (ENABLE_OPENGL)
+    SET_AND_EXPOSE_TO_BUILD(USE_TEXTURE_MAPPER_GL TRUE)
+    SET_AND_EXPOSE_TO_BUILD(ENABLE_GRAPHICS_CONTEXT_3D TRUE)
+endif ()
+
+if (NOT ENABLE_VIDEO)
+    set(USE_QT_MULTIMEDIA OFF)
+
+    if (NOT ENABLE_WEB_AUDIO)
+        set(USE_GSTREAMER OFF) # TODO: What about MEDIA_STREAM?
+    endif ()
 endif ()
 
 if (USE_QT_MULTIMEDIA)
@@ -251,7 +373,10 @@ endif ()
 
 # From OptionsGTK.cmake
 # FIXME: Refactor to avoid duplication
-if (USE_GSTREAMER AND (ENABLE_VIDEO OR ENABLE_WEB_AUDIO))
+if (USE_GSTREAMER)
+    SET_AND_EXPOSE_TO_BUILD(USE_GLIB 1)
+    find_package(GLIB 2.36 REQUIRED COMPONENTS gio gobject)
+
     set(GSTREAMER_COMPONENTS app pbutils)
 
     if (ENABLE_VIDEO)
@@ -355,6 +480,10 @@ if (MSVC)
     # Turn off certain link features
     add_compile_options(/Gy- /openmp- /GF-)
 
+    # Turn off some linker warnings
+    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} /ignore:4049 /ignore:4217")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /ignore:4049 /ignore:4217")
+
     if (${CMAKE_BUILD_TYPE} MATCHES "Debug")
         set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} /OPT:NOREF /OPT:NOICF")
         set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /OPT:NOREF /OPT:NOICF")
@@ -370,6 +499,7 @@ if (MSVC)
             set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /DEBUG:FASTLINK")
         endif ()
 
+        set(CMAKE_DEBUG_POSTFIX d)
     elseif (${CMAKE_BUILD_TYPE} MATCHES "Release")
         add_compile_options(/Oy-)
     endif ()
@@ -391,6 +521,8 @@ if (MSVC)
         # Use the multithreaded static runtime library instead of the default DLL runtime.
         string(REGEX REPLACE "/MD" "/MT" ${flag_var} "${${flag_var}}")
     endforeach ()
+
+    set(ICU_LIBRARIES icuuc${CMAKE_DEBUG_POSTFIX} icuin${CMAKE_DEBUG_POSTFIX} icudt${CMAKE_DEBUG_POSTFIX})
 endif ()
 
 if (NOT RUBY_FOUND AND RUBY_EXECUTABLE AND NOT RUBY_VERSION VERSION_LESS 1.9)

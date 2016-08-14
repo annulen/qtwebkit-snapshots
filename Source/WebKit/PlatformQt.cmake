@@ -143,6 +143,7 @@ list(APPEND WebKit_INCLUDE_DIRECTORIES
     "${WEBKIT_DIR}/qt"
     "${WEBKIT_DIR}/qt/Api"
     "${WEBKIT_DIR}/qt/WebCoreSupport"
+    "${WEBKIT_DIR}/win/Plugins"
 
     "${WTF_DIR}"
 )
@@ -192,15 +193,18 @@ list(APPEND WebKit_SOURCES
     qt/WebCoreSupport/VisitedLinkStoreQt.cpp
     qt/WebCoreSupport/WebDatabaseProviderQt.cpp
     qt/WebCoreSupport/WebEventConversion.cpp
-)
 
-qt_wrap_cpp(WebKit WebKit_SOURCES
-    qt/Api/qwebkitplatformplugin.h
+    win/Plugins/PluginDatabase.cpp
+    win/Plugins/PluginDebug.cpp
+    win/Plugins/PluginPackage.cpp
+    win/Plugins/PluginStream.cpp
+    win/Plugins/PluginView.cpp
 )
 
 # Note: Qt5Network_INCLUDE_DIRS includes Qt5Core_INCLUDE_DIRS
 list(APPEND WebKit_SYSTEM_INCLUDE_DIRECTORIES
     ${Qt5Gui_INCLUDE_DIRS}
+    ${Qt5Gui_PRIVATE_INCLUDE_DIRS}
     ${Qt5Network_INCLUDE_DIRS}
     ${Qt5Positioning_INCLUDE_DIRS}
 )
@@ -211,6 +215,9 @@ list(APPEND WebKit_LIBRARIES
     PRIVATE
         ${ICU_LIBRARIES}
         ${Qt5Positioning_LIBRARIES}
+        ${X11_X11_LIB}
+        ${X11_Xcomposite_LIB}
+        ${X11_Xrender_LIB}
     PUBLIC
         ${Qt5Core_LIBRARIES}
         ${Qt5Gui_LIBRARIES}
@@ -230,6 +237,58 @@ if (USE_QT_MULTIMEDIA)
     )
     list(APPEND WebKit_SOURCES
         qt/WebCoreSupport/FullScreenVideoQt.cpp
+    )
+endif ()
+
+if (ENABLE_TEST_SUPPORT)
+    list(APPEND WebKit_SOURCES
+        qt/WebCoreSupport/DumpRenderTreeSupportQt.cpp
+        qt/WebCoreSupport/QtTestSupport.cpp
+    )
+    if (SHARED_CORE)
+        list(APPEND WebKit_LIBRARIES PUBLIC WebCoreTestSupport)
+        install(TARGETS WebCoreTestSupport EXPORT WebKitTargets
+                DESTINATION "${LIB_INSTALL_DIR}")
+    else ()
+        list(APPEND WebKit_LIBRARIES PRIVATE WebCoreTestSupport)
+    endif ()
+endif ()
+
+if (ENABLE_NETSCAPE_PLUGIN_API)
+    list(APPEND WebKit_SOURCES
+        win/Plugins/PluginMainThreadScheduler.cpp
+        win/Plugins/npapi.cpp
+    )
+
+    if (UNIX AND NOT APPLE)
+        list(APPEND WebKit_SOURCES
+            qt/Plugins/PluginPackageQt.cpp
+            qt/Plugins/PluginViewQt.cpp
+        )
+    endif ()
+
+    if (PLUGIN_BACKEND_XLIB)
+        list(APPEND WebKit_SOURCES
+            qt/Plugins/QtX11ImageConversion.cpp
+        )
+    endif ()
+
+    if (WIN32)
+        list(APPEND WebKit_INCLUDE_DIRECTORIES
+            ${WEBCORE_DIR}/platform/win
+        )
+
+        list(APPEND WebKit_SOURCES
+            win/Plugins/PluginDatabaseWin.cpp
+            win/Plugins/PluginMessageThrottlerWin.cpp
+            win/Plugins/PluginPackageWin.cpp
+            win/Plugins/PluginViewWin.cpp
+        )
+    endif ()
+else ()
+    list(APPEND WebKit_SOURCES
+        qt/Plugins/PluginPackageNone.cpp
+        qt/Plugins/PluginViewNone.cpp
     )
 endif ()
 
@@ -271,19 +330,23 @@ ecm_generate_headers(
         QtWebKit_HEADERS
 )
 
+set(WebKit_PUBLIC_HEADERS
+    qt/Api/qwebkitglobal.h
+    ${QtWebKit_HEADERS}
+    ${QtWebKit_FORWARDING_HEADERS}
+)
+
 install(
     FILES
-        qt/Api/qwebkitglobal.h
-        ${QtWebKit_HEADERS}
-        ${QtWebKit_FORWARDING_HEADERS}
+        ${WebKit_PUBLIC_HEADERS}
     DESTINATION
         ${CMAKE_INSTALL_PREFIX}/include/QtWebKit
 )
 
-file(GLOB QtWebKit_PRIVATE_HEADERS qt/Api/*_p.h)
+file(GLOB WebKit_PRIVATE_HEADERS qt/Api/*_p.h)
 install(
     FILES
-        ${QtWebKit_PRIVATE_HEADERS}
+        ${WebKit_PRIVATE_HEADERS}
     DESTINATION
         ${CMAKE_INSTALL_PREFIX}/include/QtWebKit/${PROJECT_VERSION}/QtWebKit/private
 )
@@ -310,15 +373,13 @@ ecm_generate_pri_file(
 )
 install(FILES ${WebKit_PRI_FILENAME} DESTINATION ${ECM_MKSPECS_INSTALL_DIR})
 
-set(WebKit_LIBRARY_TYPE SHARED)
+if (QT_STATIC_BUILD)
+    set(WebKit_LIBRARY_TYPE STATIC)
+else ()
+    set(WebKit_LIBRARY_TYPE SHARED)
+endif ()
+
 set(WebKit_OUTPUT_NAME Qt5WebKit)
-
-############   WebKitTestSupport   ############
-
-
-add_library(WebKitTestSupport STATIC qt/WebCoreSupport/DumpRenderTreeSupportQt.cpp)
-target_link_libraries(WebKitTestSupport WebCoreTestSupport WebKit)
-WEBKIT_SET_EXTRA_COMPILER_FLAGS(WebKitTestSupport)
 
 
 ############     WebKitWidgets     ############
@@ -356,6 +417,7 @@ set(WebKitWidgets_SYSTEM_INCLUDE_DIRECTORIES
 
 set(WebKitWidgets_LIBRARIES
     PRIVATE
+        ${Qt5MultimediaWidgets_LIBRARIES}
         ${Qt5PrintSupport_LIBRARIES}
     PUBLIC
         ${Qt5Widgets_LIBRARIES}
@@ -369,9 +431,6 @@ if (USE_QT_MULTIMEDIA)
     )
     list(APPEND WebKitWidgets_SYSTEM_INCLUDE_DIRECTORIES
         ${Qt5MultimediaWidgets_INCLUDE_DIRS}
-    )
-    list(APPEND WebKitWidgets_LIBRARIES
-        ${Qt5MultimediaWidgets_LIBRARIES}
     )
 endif ()
 
@@ -395,18 +454,22 @@ ecm_generate_headers(
         QtWebKitWidgets_HEADERS
 )
 
+set(WebKitWidgets_PUBLIC_HEADERS
+    ${QtWebKitWidgets_HEADERS}
+    ${QtWebKitWidgets_FORWARDING_HEADERS}
+)
+
 install(
     FILES
-        ${QtWebKitWidgets_HEADERS}
-        ${QtWebKitWidgets_FORWARDING_HEADERS}
+        ${WebKitWidgets_PUBLIC_HEADERS}
     DESTINATION
         ${CMAKE_INSTALL_PREFIX}/include/QtWebKitWidgets
 )
 
-file(GLOB QtWebKitWidgets_PRIVATE_HEADERS qt/WidgetApi/*_p.h)
+file(GLOB WebKitWidgets_PRIVATE_HEADERS qt/WidgetApi/*_p.h)
 install(
     FILES
-        ${QtWebKitWidgets_PRIVATE_HEADERS}
+        ${WebKitWidgets_PRIVATE_HEADERS}
     DESTINATION
         ${CMAKE_INSTALL_PREFIX}/include/QtWebKitWidgets/${PROJECT_VERSION}/QtWebKitWidgets/private
 )
@@ -467,15 +530,25 @@ if (WIN32)
     set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} /NODEFAULTLIB:MSVCRT /NODEFAULTLIB:MSVCRTD")
 
     set(WebKit_POST_BUILD_COMMAND "${DERIVED_SOURCES_WEBKIT_DIR}/postBuild.cmd")
-    file(WRITE "${WebKit_POST_BUILD_COMMAND}" "@xcopy /y /d /i /f \"${CMAKE_CURRENT_SOURCE_DIR}/qt/Api/*.h\" \"${DERIVED_SOURCES_WEBKIT_DIR}/QtWebkit\" >nul 2>nul\n")
-    file(APPEND "${WebKit_POST_BUILD_COMMAND}" "@xcopy /y /d /i /f \"${CMAKE_CURRENT_SOURCE_DIR}/qt/WidgetApi/*.h\" \"${DERIVED_SOURCES_WEBKIT_DIR}/QtWebkitWidgets\" >nul 2>nul\n")
-    add_custom_command(TARGET WebKit POST_BUILD COMMAND ${WebKit_POST_BUILD_COMMAND} VERBATIM)
+    file(WRITE "${WebKit_POST_BUILD_COMMAND}" "@xcopy /y /d /i /f \"${CMAKE_CURRENT_SOURCE_DIR}/qt/Api/*.h\" \"${DERIVED_SOURCES_DIR}/ForwardingHeaders/QtWebkit\" >nul 2>nul\n")
+    file(APPEND "${WebKit_POST_BUILD_COMMAND}" "@xcopy /y /d /i /f \"${CMAKE_CURRENT_SOURCE_DIR}/qt/WidgetApi/*.h\" \"${DERIVED_SOURCES_DIR}/ForwardingHeaders/QtWebkitWidgets\" >nul 2>nul\n")
+    add_custom_command(TARGET WebKit POST_BUILD
+        COMMAND ${WebKit_POST_BUILD_COMMAND}
+        VERBATIM
+        DEPENDS ${WebKit_POST_BUILD_COMMAND}
+    )
 
     ADD_PRECOMPILED_HEADER("WebKitWidgetsPrefix.h" "qt/WebKitWidgetsPrefix.cpp" WebKitWidgets_SOURCES)
 endif ()
 
-set(WebKitWidgets_LIBRARY_TYPE SHARED)
+if (QT_STATIC_BUILD)
+    set(WebKitWidgets_LIBRARY_TYPE STATIC)
+else ()
+    set(WebKitWidgets_LIBRARY_TYPE SHARED)
+endif ()
+
 set(WebKitWidgets_OUTPUT_NAME Qt5WebKitWidgets)
+set(WebKitWidgets_PRIVATE_HEADERS_LOCATION Headers/${PROJECT_VERSION}/QtWebKitWidgets/Private)
 
 WEBKIT_FRAMEWORK(WebKitWidgets)
 add_dependencies(WebKitWidgets WebKit)
@@ -484,6 +557,15 @@ install(TARGETS WebKitWidgets EXPORT Qt5WebKitWidgetsTargets
         DESTINATION "${LIB_INSTALL_DIR}"
         INCLUDES DESTINATION "${CMAKE_INSTALL_PREFIX}/include/QtWebKitWidgets"
 )
+
+if (USE_LINKER_VERSION_SCRIPT)
+    set(VERSION_SCRIPT "${CMAKE_BINARY_DIR}/QtWebKitWidgets.version")
+    add_custom_command(TARGET WebKitWidgets PRE_LINK
+        COMMAND ${PERL_EXECUTABLE} ${TOOLS_DIR}/qt/generate-version-script.pl ${Qt5_VERSION} > ${VERSION_SCRIPT}
+        VERBATIM
+    )
+    set_target_properties(WebKitWidgets PROPERTIES LINK_FLAGS -Wl,--version-script,${VERSION_SCRIPT})
+endif ()
 
 if (COMPILER_IS_GCC_OR_CLANG)
     set_source_files_properties(
