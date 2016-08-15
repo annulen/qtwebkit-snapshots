@@ -2,6 +2,9 @@ include(FeatureSummary)
 include(ECMPackageConfigHelpers)
 include(ECMQueryQmake)
 
+set(ECM_MODULE_DIR ${CMAKE_MODULE_PATH})
+include(KDEInstallDirs)
+
 macro(macro_process_qtbase_prl_file qt_target_component)
     if (TARGET ${qt_target_component})
         get_target_property(_lib_name ${qt_target_component} NAME)
@@ -29,7 +32,7 @@ endmacro()
 
 set(PROJECT_VERSION_MAJOR 5)
 set(PROJECT_VERSION_MINOR 602)
-set(PROJECT_VERSION_MICRO 0)
+set(PROJECT_VERSION_MICRO 1)
 set(PROJECT_VERSION ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_MICRO})
 set(PROJECT_VERSION_STRING "${PROJECT_VERSION}")
 
