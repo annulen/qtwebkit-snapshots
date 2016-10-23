@@ -38,6 +38,7 @@
    Defining any of the symbols explicitly prevents this from having any effect.
 */
 
+#define __STDC_FORMAT_MACROS
 #include <inttypes.h>
 #include <stdarg.h>
 #include <stdbool.h>
