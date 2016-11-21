@@ -1,6 +1,10 @@
 cmake_minimum_required(VERSION 2.8.12)
 project(WebKit)
 
+if (WIN32 AND CMAKE_VERSION VERSION_LESS 3.1)
+    message(FATAL_ERROR "CMake 3.1 is required on Windows")
+endif ()
+
 # This should be removed once we require CMake 3.3.
 if (POLICY CMP0058)
     cmake_policy(SET CMP0058 NEW)
