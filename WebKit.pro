@@ -4,6 +4,12 @@ TEMPLATE = subdirs
 CONFIG += ordered
 PROJECTS_DIR = Tools/qmake/projects
 
+# Debug buld with MinGW is not supported
+mingw:debug_and_release {
+    CONFIG -= debug_and_release debug
+    CONFIG += release
+}
+
 isPlatformSupported() {
     QT_FOR_CONFIG += gui-private
     !qtConfig(system-png):qtConfig(png):exists($$QTBASE_DIR): \
