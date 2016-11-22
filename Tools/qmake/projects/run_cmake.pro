@@ -4,6 +4,12 @@ ROOT_QT_BUILD_DIR = $$ROOT_BUILD_DIR/..
 
 TEMPLATE = aux
 
+# Debug buld with MinGW is not supported
+mingw:debug_and_release {
+    CONFIG -= debug_and_release debug
+    CONFIG += release
+}
+
 CONFIG(debug, debug|release) {
     configuration = Debug
 } else {
