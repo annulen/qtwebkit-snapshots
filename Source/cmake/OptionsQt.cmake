@@ -5,9 +5,24 @@ include(ECMQueryQmake)
 set(ECM_MODULE_DIR ${CMAKE_MODULE_PATH})
 include(KDEInstallDirs)
 
-if (CONANBUILDINFO_PATH)
-    include(${CONANBUILDINFO_PATH})
+set(QT_CONAN_DIR "" CACHE PATH "Directory containing conanbuildinfo.cmake and conanfile.txt")
+if (QT_CONAN_DIR)
+    include("${QT_CONAN_DIR}/conanbuildinfo.cmake")
     conan_basic_setup()
+
+    install(CODE "
+        set(_conan_imports_dest \${CMAKE_INSTALL_PREFIX})
+        if (DEFINED ENV{DESTDIR})
+            get_filename_component(_absolute_destdir \$ENV{DESTDIR} ABSOLUTE)
+            string(REGEX REPLACE \"^[A-z]:\" \"\" _conan_imports_dest \${CMAKE_INSTALL_PREFIX})
+            set(_conan_imports_dest \"\${_absolute_destdir}\${_conan_imports_dest}\")
+        endif ()
+
+        execute_process(
+            COMMAND conan imports -f \"${QT_CONAN_DIR}/conanfile.txt\" --dest \${_conan_imports_dest}
+            WORKING_DIRECTORY \"${QT_CONAN_DIR}\"
+        )
+    ")
 endif ()
 
 set(STATIC_DEPENDENCIES_CMAKE_FILE "${CMAKE_BINARY_DIR}/QtStaticDependencies.cmake")
@@ -86,6 +101,7 @@ endif ()
 
 WEBKIT_OPTION_DEFINE(USE_GSTREAMER "Use GStreamer implementation of MediaPlayer" PUBLIC ${USE_GSTREAMER_DEFAULT})
 WEBKIT_OPTION_DEFINE(USE_LIBHYPHEN "Use automatic hyphenation with LibHyphen" PUBLIC ${USE_LIBHYPHEN_DEFAULT})
+WEBKIT_OPTION_DEFINE(USE_MEDIA_FOUNDATION "Use MediaFoundation implementation of MediaPlayer" PUBLIC ${USE_MEDIA_FOUNDATION_DEFAULT})
 WEBKIT_OPTION_DEFINE(USE_QT_MULTIMEDIA "Use Qt Multimedia implementation of MediaPlayer" PUBLIC ${USE_QT_MULTIMEDIA_DEFAULT})
 WEBKIT_OPTION_DEFINE(USE_WOFF2 "Include support of WOFF2 fonts format" PUBLIC ON)
 WEBKIT_OPTION_DEFINE(ENABLE_INSPECTOR_UI "Include Inspector UI into resources" PUBLIC ON)
@@ -95,6 +111,7 @@ WEBKIT_OPTION_DEFINE(ENABLE_X11_TARGET "Whether to enable support for the X11 wi
 
 option(GENERATE_DOCUMENTATION "Generate HTML and QCH documentation" OFF)
 option(ENABLE_TEST_SUPPORT "Build tools for running layout tests and related library code" ON)
+option(USE_STATIC_RUNTIME "Use static runtime (MSVC only)" OFF)
 
 # Public options shared with other WebKit ports. There must be strong reason
 # to support changing the value of the option.
@@ -587,16 +604,18 @@ if (MSVC)
     if (NOT ${CMAKE_CXX_FLAGS} STREQUAL "")
         string(REGEX REPLACE "(/EH[a-z]+) " "\\1- " CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS}) # Disable C++ exceptions
         string(REGEX REPLACE "/EHsc$" "/EHs- /EHc- " CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS}) # Disable C++ exceptions
-        string(REGEX REPLACE "/GR " "/GR- " CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS}) # Disable RTTI
+        string(REGEX REPLACE "/EHsc- " "/EHs- /EHc- " CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS}) # Disable C++ exceptions
         string(REGEX REPLACE "/W3" "/W4" CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS}) # Warnings are important
     endif ()
 
-    foreach (flag_var
-        CMAKE_CXX_FLAGS CMAKE_CXX_FLAGS_DEBUG CMAKE_CXX_FLAGS_RELEASE
-        CMAKE_CXX_FLAGS_MINSIZEREL CMAKE_CXX_FLAGS_RELWITHDEBINFO)
-        # Use the multithreaded static runtime library instead of the default DLL runtime.
-        string(REGEX REPLACE "/MD" "/MT" ${flag_var} "${${flag_var}}")
-    endforeach ()
+    if (USE_STATIC_RUNTIME)
+        foreach (flag_var
+            CMAKE_CXX_FLAGS CMAKE_CXX_FLAGS_DEBUG CMAKE_CXX_FLAGS_RELEASE
+            CMAKE_CXX_FLAGS_MINSIZEREL CMAKE_CXX_FLAGS_RELWITHDEBINFO)
+            # Use the multithreaded static runtime library instead of the default DLL runtime.
+            string(REGEX REPLACE "/MD" "/MT" ${flag_var} "${${flag_var}}")
+        endforeach ()
+    endif ()
 
     set(ICU_LIBRARIES icuuc${CMAKE_DEBUG_POSTFIX} icuin${CMAKE_DEBUG_POSTFIX} icudt${CMAKE_DEBUG_POSTFIX})
 endif ()

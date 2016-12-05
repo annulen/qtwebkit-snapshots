@@ -626,7 +626,7 @@ if (WIN32)
     if (CMAKE_SIZEOF_VOID_P EQUAL 8)
         enable_language(ASM_MASM)
         list(APPEND WebKit_SOURCES
-            win/plugins/PaintHooks.asm
+            win/Plugins/PaintHooks.asm
         )
     endif ()
 
@@ -652,8 +652,6 @@ if (WIN32)
     list(APPEND WebKit_INCLUDE_DIRECTORIES
         ${DERIVED_SOURCES_WEBKIT_DIR}
     )
-
-    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} /NODEFAULTLIB:MSVCRT /NODEFAULTLIB:MSVCRTD")
 
     set(WebKit_POST_BUILD_COMMAND "${DERIVED_SOURCES_WEBKIT_DIR}/postBuild.cmd")
     file(WRITE "${WebKit_POST_BUILD_COMMAND}" "@xcopy /y /d /i /f \"${CMAKE_CURRENT_SOURCE_DIR}/qt/Api/*.h\" \"${DERIVED_SOURCES_DIR}/ForwardingHeaders/QtWebkit\" >nul 2>nul\n")
