@@ -34,7 +34,10 @@ macro(CONVERT_PRL_LIBS_TO_CMAKE _qt_component)
     if (TARGET Qt5::${_qt_component})
         get_target_property(_lib_location Qt5::${_qt_component} LOCATION)
         execute_process(COMMAND ${PERL_EXECUTABLE} ${TOOLS_DIR}/qt/convert-prl-libs-to-cmake.pl
-            ${_lib_location} ${_qt_component} ${STATIC_DEPENDENCIES_CMAKE_FILE}
+            --lib ${_lib_location}
+            --out ${STATIC_DEPENDENCIES_CMAKE_FILE}
+            --component ${_qt_component}
+            --compiler ${CMAKE_CXX_COMPILER_ID}
         )
     endif ()
 endmacro()
@@ -101,7 +104,7 @@ endif ()
 
 WEBKIT_OPTION_DEFINE(USE_GSTREAMER "Use GStreamer implementation of MediaPlayer" PUBLIC ${USE_GSTREAMER_DEFAULT})
 WEBKIT_OPTION_DEFINE(USE_LIBHYPHEN "Use automatic hyphenation with LibHyphen" PUBLIC ${USE_LIBHYPHEN_DEFAULT})
-WEBKIT_OPTION_DEFINE(USE_MEDIA_FOUNDATION "Use MediaFoundation implementation of MediaPlayer" PUBLIC ${USE_MEDIA_FOUNDATION_DEFAULT})
+WEBKIT_OPTION_DEFINE(USE_MEDIA_FOUNDATION "Use MediaFoundation implementation of MediaPlayer" PUBLIC OFF)
 WEBKIT_OPTION_DEFINE(USE_QT_MULTIMEDIA "Use Qt Multimedia implementation of MediaPlayer" PUBLIC ${USE_QT_MULTIMEDIA_DEFAULT})
 WEBKIT_OPTION_DEFINE(USE_WOFF2 "Include support of WOFF2 fonts format" PUBLIC ON)
 WEBKIT_OPTION_DEFINE(ENABLE_INSPECTOR_UI "Include Inspector UI into resources" PUBLIC ON)
@@ -110,7 +113,8 @@ WEBKIT_OPTION_DEFINE(ENABLE_PRINT_SUPPORT "Enable support for printing web pages
 WEBKIT_OPTION_DEFINE(ENABLE_X11_TARGET "Whether to enable support for the X11 windowing target." PUBLIC ${ENABLE_X11_TARGET_DEFAULT})
 
 option(GENERATE_DOCUMENTATION "Generate HTML and QCH documentation" OFF)
-option(ENABLE_TEST_SUPPORT "Build tools for running layout tests and related library code" ON)
+cmake_dependent_option(ENABLE_TEST_SUPPORT "Build tools for running layout tests and related library code" ON
+                                           "DEVELOPER_MODE" OFF)
 option(USE_STATIC_RUNTIME "Use static runtime (MSVC only)" OFF)
 
 # Public options shared with other WebKit ports. There must be strong reason
@@ -121,7 +125,7 @@ WEBKIT_OPTION_DEFAULT_PORT_VALUE(ENABLE_CSS_GRID_LAYOUT PUBLIC ON)
 WEBKIT_OPTION_DEFAULT_PORT_VALUE(ENABLE_DATABASE_PROCESS PUBLIC OFF)
 WEBKIT_OPTION_DEFAULT_PORT_VALUE(ENABLE_DATALIST_ELEMENT PUBLIC ON)
 WEBKIT_OPTION_DEFAULT_PORT_VALUE(ENABLE_DEVICE_ORIENTATION PUBLIC ON)
-WEBKIT_OPTION_DEFAULT_PORT_VALUE(ENABLE_FULLSCREEN_API PUBLIC OFF)
+WEBKIT_OPTION_DEFAULT_PORT_VALUE(ENABLE_FULLSCREEN_API PUBLIC ON)
 WEBKIT_OPTION_DEFAULT_PORT_VALUE(ENABLE_GAMEPAD_DEPRECATED PUBLIC ${ENABLE_GAMEPAD_DEPRECATED_DEFAULT})
 WEBKIT_OPTION_DEFAULT_PORT_VALUE(ENABLE_INDEXED_DATABASE PUBLIC ON)
 WEBKIT_OPTION_DEFAULT_PORT_VALUE(ENABLE_LEGACY_WEB_AUDIO PUBLIC ${USE_GSTREAMER_DEFAULT})
@@ -215,6 +219,9 @@ SET_AND_EXPOSE_TO_BUILD(USE_TEXTURE_MAPPER TRUE)
 if (WIN32)
     # bmalloc is not ported to Windows yet
     set(USE_SYSTEM_MALLOC 1)
+endif ()
+
+if (MSVC)
     if (NOT WEBKIT_LIBRARIES_DIR)
         if (DEFINED ENV{WEBKIT_LIBRARIES})
             set(WEBKIT_LIBRARIES_DIR "$ENV{WEBKIT_LIBRARIES}")
@@ -416,6 +423,10 @@ if (COMPILER_IS_GCC_OR_CLANG AND UNIX)
     endif ()
 endif ()
 
+if (WIN32 AND COMPILER_IS_GCC_OR_CLANG)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-keep-inline-dllexport")
+endif ()
+
 if (ENABLE_MATHML)
     SET_AND_EXPOSE_TO_BUILD(ENABLE_OPENTYPE_MATH 1)
 endif ()
@@ -542,8 +553,12 @@ endif ()
 # set(JavaScriptCore_LIBRARY_TYPE STATIC)
 
 # From OptionsWin.cmake
+if (WIN32)
+    add_definitions(-DNOMINMAX -DUNICODE -D_UNICODE -D_WINDOWS)
+endif ()
+
 if (MSVC)
-    add_definitions(-DNOMINMAX -DUNICODE -D_UNICODE -D_WINDOWS -DWINVER=0x601)
+    add_definitions(-DWINVER=0x601)
 
     add_definitions(
         /wd4018 /wd4068 /wd4099 /wd4100 /wd4127 /wd4138 /wd4146 /wd4180 /wd4189
@@ -554,11 +569,15 @@ if (MSVC)
         /wd6246 /wd6255 /wd6387
     )
 
-    # Create pdb files for debugging purposes, also for Release builds
-    add_compile_options(/Zi /GS)
+    if (CMAKE_SIZEOF_VOID_P EQUAL 8)
+        # Create pdb files for debugging purposes, also for Release builds
+        set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} /Zi")
+        set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /Zi")
+        set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "${CMAKE_SHARED_LINKER_FLAGS} /DEBUG")
+        set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS} /DEBUG")
+    endif ()
 
-    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} /DEBUG")
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /DEBUG")
+    add_compile_options(/GS)
 
     # We do not use exceptions
     add_definitions(-D_HAS_EXCEPTIONS=0)

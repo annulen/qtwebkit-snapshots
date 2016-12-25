@@ -8,6 +8,10 @@ macro(generate_header _file _var _content)
     set_source_files_properties(${_file} PROPERTIES GENERATED TRUE)
 endmacro()
 
+if (${JavaScriptCore_LIBRARY_TYPE} MATCHES STATIC)
+    add_definitions(-DSTATICALLY_LINKED_WITH_WTF -DSTATICALLY_LINKED_WITH_JavaScriptCore)
+endif ()
+
 list(APPEND WebKit_INCLUDE_DIRECTORIES
     "${WEBCORE_DIR}"
     "${DERIVED_SOURCES_DIR}"
@@ -163,6 +167,7 @@ list(APPEND WebKit_SOURCES
     qt/Api/qhttpheader.cpp
     qt/Api/qwebdatabase.cpp
     qt/Api/qwebelement.cpp
+    qt/Api/qwebfullscreenrequest.cpp
     qt/Api/qwebhistory.cpp
     qt/Api/qwebhistoryinterface.cpp
     qt/Api/qwebkitglobal.cpp
@@ -320,6 +325,7 @@ ecm_generate_headers(
     HEADER_NAMES
         QWebDatabase
         QWebElement,QWebElementCollection
+        QWebFullScreenRequest
         QWebHistory,QWebHistoryItem
         QWebHistoryInterface
         QWebKitPlatformPlugin,QWebHapticFeedbackPlayer,QWebFullScreenVideoHandler,QWebNotificationData,QWebNotificationPresenter,QWebSelectData,QWebSelectMethod,QWebSpellChecker,QWebTouchModifier
@@ -622,7 +628,7 @@ ecm_generate_pri_file(
 )
 install(FILES ${WebKitWidgets_PRI_FILENAME} DESTINATION ${ECM_MKSPECS_INSTALL_DIR})
 
-if (WIN32)
+if (MSVC)
     if (CMAKE_SIZEOF_VOID_P EQUAL 8)
         enable_language(ASM_MASM)
         list(APPEND WebKit_SOURCES
@@ -687,6 +693,10 @@ install(TARGETS WebKitWidgets EXPORT Qt5WebKitWidgetsTargets
         RUNTIME DESTINATION "${BIN_INSTALL_DIR}"
 )
 
+if (NOT MSVC AND WIN32)
+    ADD_PREFIX_HEADER(WebKitWidgets "qt/WebKitWidgetsPrefix.h")
+endif ()
+
 if (USE_LINKER_VERSION_SCRIPT)
     set(VERSION_SCRIPT "${CMAKE_BINARY_DIR}/QtWebKitWidgets.version")
     add_custom_command(TARGET WebKitWidgets PRE_LINK
@@ -709,6 +719,7 @@ if (COMPILER_IS_GCC_OR_CLANG)
 
         qt/WidgetApi/qgraphicswebview.cpp
         qt/WidgetApi/qwebframe.cpp
+        qt/WidgetApi/qwebfullscreenrequest.cpp
         qt/WidgetApi/qwebinspector.cpp
         qt/WidgetApi/qwebpage.cpp
         qt/WidgetApi/qwebview.cpp
