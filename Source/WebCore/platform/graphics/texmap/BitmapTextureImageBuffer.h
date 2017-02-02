@@ -24,60 +24,37 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef BitmapTexturePool_h
-#define BitmapTexturePool_h
+#ifndef BitmapTextureImageBuffer_h
+#define BitmapTextureImageBuffer_h
 
 #include "BitmapTexture.h"
-#include "Timer.h"
-#include <wtf/CurrentTime.h>
-
-#if USE(TEXTURE_MAPPER_GL)
-#include "GraphicsContext3D.h"
-#endif
+#include "ImageBuffer.h"
+#include "IntRect.h"
+#include "IntSize.h"
 
 namespace WebCore {
 
-class GraphicsContext3D;
-class IntSize;
+class GraphicsContext;
 
-class BitmapTexturePool {
-    WTF_MAKE_NONCOPYABLE(BitmapTexturePool);
-    WTF_MAKE_FAST_ALLOCATED;
+class BitmapTextureImageBuffer final : public BitmapTexture {
 public:
-#if PLATFORM(QT)
-    BitmapTexturePool();
-#endif
-#if USE(TEXTURE_MAPPER_GL)
-    explicit BitmapTexturePool(RefPtr<GraphicsContext3D>&&);
-#endif
+    static PassRefPtr<BitmapTexture> create() { return adoptRef(new BitmapTextureImageBuffer); }
+    IntSize size() const final { return m_image->internalSize(); }
+    void didReset() final;
+    bool isValid() const final { return m_image.get(); }
+    void updateContents(Image*, const IntRect&, const IntPoint&, UpdateContentsFlag) final;
+    void updateContents(TextureMapper&, GraphicsLayer*, const IntRect& target, const IntPoint& offset, UpdateContentsFlag, float scale) final;
+    void updateContents(const void*, const IntRect& target, const IntPoint& sourceOffset, int bytesPerLine, UpdateContentsFlag) final;
+    PassRefPtr<BitmapTexture> applyFilters(TextureMapper&, const FilterOperations&) final;
 
-    RefPtr<BitmapTexture> acquireTexture(const IntSize&, const BitmapTexture::Flags);
+    inline GraphicsContext* graphicsContext() { return m_image ? &m_image->context() : nullptr; }
+    ImageBuffer* image() const { return m_image.get(); }
 
 private:
-    struct Entry {
-        explicit Entry(RefPtr<BitmapTexture>&& texture)
-            : m_texture(WTFMove(texture))
-        { }
-
-        void markIsInUse() { m_lastUsedTime = monotonicallyIncreasingTime(); }
-
-        RefPtr<BitmapTexture> m_texture;
-        double m_lastUsedTime;
-    };
-
-    void scheduleReleaseUnusedTextures();
-    void releaseUnusedTexturesTimerFired();
-    RefPtr<BitmapTexture> createTexture(const BitmapTexture::Flags);
-
-#if USE(TEXTURE_MAPPER_GL)
-    RefPtr<GraphicsContext3D> m_context3D;
-#endif
-
-    Vector<Entry> m_textures;
-    Vector<Entry> m_attachmentTextures;
-    Timer m_releaseUnusedTexturesTimer;
+    BitmapTextureImageBuffer() { }
+    std::unique_ptr<ImageBuffer> m_image;
 };
 
-} // namespace WebCore
+}
 
-#endif // BitmapTexturePool_h
+#endif // BitmapTextureImageBuffer_h

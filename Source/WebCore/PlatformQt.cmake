@@ -65,6 +65,9 @@ list(APPEND WebCore_SOURCES
     platform/graphics/ImageSource.cpp
     platform/graphics/WOFFFileFormat.cpp
 
+    platform/graphics/texmap/BitmapTextureImageBuffer.cpp
+    platform/graphics/texmap/TextureMapperImageBuffer.cpp
+
     platform/graphics/qt/ColorQt.cpp
     platform/graphics/qt/FloatPointQt.cpp
     platform/graphics/qt/FloatRectQt.cpp
@@ -264,7 +267,8 @@ if (ENABLE_OPENGL)
         platform/graphics/opengl/TemporaryOpenGLSetting.cpp
     )
 
-    if (${Qt5Gui_OPENGL_IMPLEMENTATION} STREQUAL GLESv2)
+    # FIXME: Distinguish Dynamic GL from GLESv2 on Windows
+    if (NOT WIN32 AND ${Qt5Gui_OPENGL_IMPLEMENTATION} STREQUAL GLESv2)
         list(APPEND WebCore_SOURCES
             platform/graphics/opengl/Extensions3DOpenGLES.cpp
             platform/graphics/opengl/GraphicsContext3DOpenGLES.cpp
