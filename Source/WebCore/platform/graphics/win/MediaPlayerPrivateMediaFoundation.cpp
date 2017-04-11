@@ -173,6 +173,8 @@ MediaPlayer::SupportsType MediaPlayerPrivateMediaFoundation::supportsType(const 
 
 void MediaPlayerPrivateMediaFoundation::load(const String& url)
 {
+    m_cachedNaturalSize = FloatSize();
+
     startCreateMediaSource(url);
 
     m_networkState = MediaPlayer::Loading;
@@ -217,7 +219,7 @@ bool MediaPlayerPrivateMediaFoundation::supportsFullscreen() const
 
 FloatSize MediaPlayerPrivateMediaFoundation::naturalSize() const 
 {
-    return m_size;
+    return m_cachedNaturalSize;
 }
 
 bool MediaPlayerPrivateMediaFoundation::hasVideo() const
@@ -1554,6 +1556,25 @@ static bool areMediaTypesEqual(IMFMediaType* type1, IMFMediaType* type2)
     return S_OK == type1->IsEqual(type2, &flags);
 }
 
+static FloatSize calculateNaturalSize(IMFMediaType* mediaType)
+{
+    UINT32 width = 0, height = 0;
+    HRESULT hr = MFGetAttributeSize(mediaType, MF_MT_FRAME_SIZE, &width, &height);
+    if (FAILED(hr) || height == 0)
+        return FloatSize();
+
+    UINT32 parNumerator = 0;
+    UINT32 parDenominator = 0;
+    hr = MFGetAttributeRatio(mediaType, MF_MT_PIXEL_ASPECT_RATIO, &parNumerator, &parDenominator);
+    if (SUCCEEDED(hr) && parNumerator && parDenominator) {
+        FloatSize size(width, height);
+        size.setWidth(size.width() * parNumerator / parDenominator);
+        return size;
+    }
+
+    return FloatSize();
+}
+
 HRESULT MediaPlayerPrivateMediaFoundation::CustomVideoPresenter::setMediaType(IMFMediaType* mediaType)
 {
     if (!mediaType) {
@@ -1610,6 +1631,10 @@ HRESULT MediaPlayerPrivateMediaFoundation::CustomVideoPresenter::setMediaType(IM
         const MFRatio defaultFrameRate = { 30, 1 };
         m_scheduler.setFrameRate(defaultFrameRate);
     }
+
+    // Update natural size
+    if (m_mediaPlayer)
+        m_mediaPlayer->setNaturalSize(calculateNaturalSize(mediaType));
 
     ASSERT(mediaType);
     m_mediaType = mediaType;

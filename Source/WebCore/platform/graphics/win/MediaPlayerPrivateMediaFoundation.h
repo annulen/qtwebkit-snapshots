@@ -106,6 +106,7 @@ public:
 private:
     MediaPlayer* m_player;
     IntSize m_size;
+    FloatSize m_cachedNaturalSize;
     bool m_visible;
     bool m_loadingProgress;
     bool m_paused;
@@ -158,6 +159,7 @@ private:
 
     void addListener(MediaPlayerListener*);
     void removeListener(MediaPlayerListener*);
+    void setNaturalSize();
     void notifyDeleted();
 
     static LRESULT CALLBACK VideoViewWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
