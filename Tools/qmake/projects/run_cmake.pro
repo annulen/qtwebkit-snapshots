@@ -4,7 +4,9 @@ ROOT_QT_BUILD_DIR = $$ROOT_BUILD_DIR/..
 
 TEMPLATE = aux
 
-win32:!contains(QMAKE_HOST.arch, x86_64) {
+qtConfig(debug_and_release): CONFIG += debug_and_release build_all
+
+msvc:!contains(QMAKE_HOST.arch, x86_64) {
     debug_and_release {
         warning("Skipping debug build of QtWebKit because it requires a 64-bit toolchain")
         CONFIG -= debug_and_release debug
@@ -62,13 +64,27 @@ build_pass|!debug_and_release {
         CMAKE_CONFIG += QT_CONAN_DIR=$$ROOT_BUILD_DIR
     }
 
+    macos {
+        # Reuse the cached sdk version value from mac/sdk.prf if available
+        # otherwise query for it.
+        QMAKE_MAC_SDK_PATH = $$eval(QMAKE_MAC_SDK.$${QMAKE_MAC_SDK}.Path)
+        isEmpty(QMAKE_MAC_SDK_PATH) {
+            QMAKE_MAC_SDK_PATH = $$system("/usr/bin/xcodebuild -sdk $${QMAKE_MAC_SDK} -version Path 2>/dev/null")
+        }
+        exists($$QMAKE_MAC_SDK_PATH): CMAKE_CONFIG += CMAKE_OSX_SYSROOT=$$QMAKE_MAC_SDK_PATH
+        !isEmpty(QMAKE_MACOSX_DEPLOYMENT_TARGET): CMAKE_CONFIG += CMAKE_OSX_DEPLOYMENT_TARGET=$$QMAKE_MACOSX_DEPLOYMENT_TARGET
+    }
+
     equals(QMAKE_HOST.os, Windows) {
         if(equals(MAKEFILE_GENERATOR, MSVC.NET)|equals(MAKEFILE_GENERATOR, MSBUILD)) {
             cmake_generator = "NMake Makefiles JOM"
+            make_command_name = jom
         } else: if(equals(MAKEFILE_GENERATOR, MINGW)) {
             cmake_generator = "MinGW Makefiles"
+            make_command_name = make
         } else {
             cmake_generator = "Unix Makefiles"
+            make_command_name = make
         }
         cmake_args += "-G \"$$cmake_generator\""
     }
@@ -87,14 +103,26 @@ build_pass|!debug_and_release {
     log("$${EOL}Running $$cmake_env cmake $$ROOT_WEBKIT_DIR $$cmake_args $${EOL}$${EOL}")
     !system("$$cmake_cmd_base $$cmake_env cmake $$ROOT_WEBKIT_DIR $$cmake_args"): error("Running cmake failed")
 
-    log("$${EOL}WebKit is now configured for building. Just run 'make'.$${EOL}$${EOL}")
+    log("$${EOL}WebKit is now configured for building. Just run '$$make_command_name'.$${EOL}$${EOL}")
 
 
-    default_target.target = first
+    build_pass:build_all: default_target.target = all
+    else: default_target.target = first
     default_target.commands = cd $$cmake_build_dir && $(MAKE) $$make_args
     QMAKE_EXTRA_TARGETS += default_target
 
+    # When debug and release are built at the same time, don't install data files twice
+    debug_and_release:build_all:CONFIG(debug, debug|release) {
+        cmake_install_args = "-DCOMPONENT=Code"
+        # TODO: Fix macOS frameworks installation in debug_and_release
+        macos: destdir_suffix = "/debug"
+    }
+
+    install_impl_target.target = install_impl
+    install_impl_target.commands = cd $$cmake_build_dir && cmake $$cmake_install_args -P cmake_install.cmake
+    QMAKE_EXTRA_TARGETS += install_impl_target
+
     install_target.target = install
-    install_target.commands = cd $$cmake_build_dir && $(MAKE) install $$make_args DESTDIR=$(INSTALL_ROOT)
+    install_target.commands = $(MAKE) -f $(MAKEFILE) install_impl $$make_args DESTDIR=$(INSTALL_ROOT)$$destdir_suffix
     QMAKE_EXTRA_TARGETS += install_target
 }

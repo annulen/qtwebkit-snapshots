@@ -26,7 +26,10 @@ list(APPEND WebCore_INCLUDE_DIRECTORIES
     "${THIRDPARTY_DIR}/ANGLE/include/KHR"
     "${WEBCORE_DIR}/Modules/gamepad"
     "${WEBCORE_DIR}/bridge/qt"
+    "${WEBCORE_DIR}/dom/qt"
+    "${WEBCORE_DIR}/editing/qt"
     "${WEBCORE_DIR}/history/qt"
+    "${WEBCORE_DIR}/page/qt"
     "${WEBCORE_DIR}/platform/qt"
     "${WEBCORE_DIR}/platform/audio/qt"
     "${WEBCORE_DIR}/platform/graphics/egl"
@@ -53,10 +56,13 @@ list(APPEND WebCore_SOURCES
     bridge/qt/qt_pixmapruntime.cpp
     bridge/qt/qt_runtime.cpp
 
+    dom/qt/GestureEvent.cpp
+
     editing/qt/EditorQt.cpp
 
     page/qt/DragControllerQt.cpp
     page/qt/EventHandlerQt.cpp
+    page/qt/TouchAdjustment.cpp
 
     platform/KillRingNone.cpp
 
@@ -88,7 +94,6 @@ list(APPEND WebCore_SOURCES
     platform/graphics/qt/IntPointQt.cpp
     platform/graphics/qt/IntRectQt.cpp
     platform/graphics/qt/IntSizeQt.cpp
-    platform/graphics/qt/QFramebufferPaintDevice.cpp
     platform/graphics/qt/PathQt.cpp
     platform/graphics/qt/PatternQt.cpp
     platform/graphics/qt/StillImageQt.cpp
@@ -198,6 +203,13 @@ if (ENABLE_NETSCAPE_PLUGIN_API AND WIN32)
     )
 endif ()
 
+if (ENABLE_SMOOTH_SCROLLING)
+    list(APPEND WebCore_SOURCES
+        platform/ScrollAnimationSmooth.cpp
+        platform/ScrollAnimatorSmooth.cpp
+    )
+endif ()
+
 # Do it in the WebCore to support SHARED_CORE since WebKitWidgets won't load WebKit in that case.
 # This should match the opposite statement in WebKit/PlatformQt.cmake
 if (SHARED_CORE)
@@ -265,6 +277,8 @@ if (ENABLE_OPENGL)
         platform/graphics/opengl/Extensions3DOpenGLCommon.cpp
         platform/graphics/opengl/GraphicsContext3DOpenGLCommon.cpp
         platform/graphics/opengl/TemporaryOpenGLSetting.cpp
+
+        platform/graphics/qt/QFramebufferPaintDevice.cpp
     )
 
     if (${Qt5Gui_OPENGL_IMPLEMENTATION} STREQUAL GLESv2)

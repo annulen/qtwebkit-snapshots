@@ -58,10 +58,20 @@ set(CMAKE_MACOSX_RPATH ON)
 
 add_definitions(-DBUILDING_QT__=1)
 
+if (WIN32)
+    if (${CMAKE_BUILD_TYPE} MATCHES "Debug")
+        set(CMAKE_DEBUG_POSTFIX d)
+    endif ()
+
+    set(CMAKE_SHARED_LIBRARY_PREFIX "")
+    set(CMAKE_SHARED_MODULE_PREFIX "")
+endif ()
+
 WEBKIT_OPTION_BEGIN()
 
 if (APPLE)
     option(MACOS_FORCE_SYSTEM_XML_LIBRARIES "Use system installation of libxml2 and libxslt on macOS" ON)
+    set(MACOS_BUILD_FRAMEWORKS ON) # TODO: Make it an option
 endif ()
 
 if (WIN32 OR APPLE)
@@ -101,6 +111,9 @@ else ()
     set(ENABLE_NETSCAPE_PLUGIN_API_DEFAULT OFF)
 endif ()
 
+# Public options specific to the Qt port. Do not add any options here unless
+# there is a strong reason we should support changing the value of the option,
+# and the option is not relevant to any other WebKit ports.
 WEBKIT_OPTION_DEFINE(USE_GSTREAMER "Use GStreamer implementation of MediaPlayer" PUBLIC ${USE_GSTREAMER_DEFAULT})
 WEBKIT_OPTION_DEFINE(USE_LIBHYPHEN "Use automatic hyphenation with LibHyphen" PUBLIC ${USE_LIBHYPHEN_DEFAULT})
 WEBKIT_OPTION_DEFINE(USE_MEDIA_FOUNDATION "Use MediaFoundation implementation of MediaPlayer" PUBLIC OFF)
@@ -109,12 +122,18 @@ WEBKIT_OPTION_DEFINE(USE_WOFF2 "Include support of WOFF2 fonts format" PUBLIC ON
 WEBKIT_OPTION_DEFINE(ENABLE_INSPECTOR_UI "Include Inspector UI into resources" PUBLIC ON)
 WEBKIT_OPTION_DEFINE(ENABLE_OPENGL "Whether to use OpenGL." PUBLIC ON)
 WEBKIT_OPTION_DEFINE(ENABLE_PRINT_SUPPORT "Enable support for printing web pages" PUBLIC ON)
+WEBKIT_OPTION_DEFINE(ENABLE_QT_GESTURE_EVENTS "Enable support for gesture events (required for mouse in WK2)" PUBLIC ON)
 WEBKIT_OPTION_DEFINE(ENABLE_X11_TARGET "Whether to enable support for the X11 windowing target." PUBLIC ${ENABLE_X11_TARGET_DEFAULT})
 
 option(GENERATE_DOCUMENTATION "Generate HTML and QCH documentation" OFF)
 cmake_dependent_option(ENABLE_TEST_SUPPORT "Build tools for running layout tests and related library code" ON
                                            "DEVELOPER_MODE" OFF)
 option(USE_STATIC_RUNTIME "Use static runtime (MSVC only)" OFF)
+
+# Private options specific to the Qt port. Changing these options is
+# completely unsupported. They are intended for use only by WebKit developers.
+WEBKIT_OPTION_DEFINE(ENABLE_TOUCH_ADJUSTMENT "Whether to use touch adjustment" PRIVATE ON)
+
 
 # Public options shared with other WebKit ports. There must be strong reason
 # to support changing the value of the option.
@@ -161,10 +180,15 @@ WEBKIT_OPTION_DEFAULT_PORT_VALUE(ENABLE_INPUT_TYPE_COLOR PRIVATE ON)
 WEBKIT_OPTION_DEFAULT_PORT_VALUE(ENABLE_MEDIA_CONTROLS_SCRIPT PRIVATE ON)
 WEBKIT_OPTION_DEFAULT_PORT_VALUE(ENABLE_MHTML PRIVATE ON)
 WEBKIT_OPTION_DEFAULT_PORT_VALUE(ENABLE_NOTIFICATIONS PRIVATE ON)
+WEBKIT_OPTION_DEFAULT_PORT_VALUE(ENABLE_SMOOTH_SCROLLING PRIVATE ON)
 WEBKIT_OPTION_DEFAULT_PORT_VALUE(ENABLE_USERSELECT_ALL PRIVATE ON)
 WEBKIT_OPTION_DEFAULT_PORT_VALUE(ENABLE_VIDEO_TRACK PRIVATE ON)
 WEBKIT_OPTION_DEFAULT_PORT_VALUE(ENABLE_WEB_TIMING PRIVATE ON)
 WEBKIT_OPTION_DEFAULT_PORT_VALUE(ENABLE_WEBGL PRIVATE ON)
+
+if (MINGW AND CMAKE_SIZEOF_VOID_P EQUAL 8)
+    WEBKIT_OPTION_DEFAULT_PORT_VALUE(ENABLE_JIT PRIVATE OFF)
+endif ()
 
 WEBKIT_OPTION_CONFLICT(USE_GSTREAMER USE_QT_MULTIMEDIA)
 
@@ -212,6 +236,7 @@ get_target_property(QT_CORE_TYPE Qt5::Core TYPE)
 if (QT_CORE_TYPE MATCHES STATIC)
     set(QT_STATIC_BUILD ON)
     set(SHARED_CORE OFF)
+    set(MACOS_BUILD_FRAMEWORKS OFF)
 endif ()
 
 if (SHARED_CORE)
@@ -317,10 +342,10 @@ else ()
 endif ()
 
 if (MACOS_FORCE_SYSTEM_XML_LIBRARIES)
-    set(LIBXML2_INCLUDE_DIR "/usr/include/libxml2")
+    set(LIBXML2_INCLUDE_DIR "${CMAKE_OSX_SYSROOT}/usr/include/libxml2")
     set(LIBXML2_LIBRARIES xml2)
     if (ENABLE_XSLT)
-        set(LIBXSLT_INCLUDE_DIR "/usr/include/libxslt")
+        set(LIBXSLT_INCLUDE_DIR "${CMAKE_OSX_SYSROOT}/usr/include/libxslt")
         set(LIBXSLT_LIBRARIES xslt)
     endif ()
 else ()
@@ -433,6 +458,10 @@ endif ()
 
 if (WIN32 AND COMPILER_IS_GCC_OR_CLANG)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-keep-inline-dllexport")
+endif ()
+
+if (APPLE)
+    SET_AND_EXPOSE_TO_BUILD(HAVE_QOS_CLASSES 1)
 endif ()
 
 if (ENABLE_MATHML)
@@ -628,8 +657,6 @@ if (MSVC)
             set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} /DEBUG:FASTLINK")
             set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /DEBUG:FASTLINK")
         endif ()
-
-        set(CMAKE_DEBUG_POSTFIX d)
     elseif (${CMAKE_BUILD_TYPE} MATCHES "Release")
         add_compile_options(/Oy-)
     endif ()
@@ -654,7 +681,9 @@ if (MSVC)
         endforeach ()
     endif ()
 
-    set(ICU_LIBRARIES icuuc${CMAKE_DEBUG_POSTFIX} icuin${CMAKE_DEBUG_POSTFIX} icudt${CMAKE_DEBUG_POSTFIX})
+    if (NOT QT_CONAN_DIR)
+        set(ICU_LIBRARIES icuuc${CMAKE_DEBUG_POSTFIX} icuin${CMAKE_DEBUG_POSTFIX} icudt${CMAKE_DEBUG_POSTFIX})
+    endif ()
 endif ()
 
 if (NOT RUBY_FOUND AND RUBY_EXECUTABLE AND NOT RUBY_VERSION VERSION_LESS 1.9)
@@ -681,3 +710,8 @@ include(KDEInstallDirs)
 if (NOT qt_install_prefix_dir STREQUAL "${CMAKE_INSTALL_PREFIX}")
     set(KDE_INSTALL_USE_QT_SYS_PATHS OFF)
 endif ()
+
+# We split all installed files into 2 components: Code and Data. This is different from
+# traditional approach with Runtime and Devel, but we need it to fix concurrent installation of
+# debug and release builds in qmake-based build
+set(CMAKE_INSTALL_DEFAULT_COMPONENT_NAME "Code")
