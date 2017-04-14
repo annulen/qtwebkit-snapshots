@@ -78,16 +78,40 @@ private:
 
 PlatformWebView::PlatformWebView(WKContextRef contextRef, WKPageGroupRef pageGroupRef)
 {
-    m_view = new QQuickWebView(contextRef, pageGroupRef);
-    m_view->setAllowAnyHTTPSCertificateForLocalHost(true);
-    m_view->componentComplete();
+    WKRetainPtr<WKPageConfigurationRef> configuration = adoptWK(WKPageConfigurationCreate());
+    WKPageConfigurationSetContext(configuration.get(), contextRef);
+    WKPageConfigurationSetPageGroup(configuration.get(), pageGroupRef);
 
-    m_window = new WrapperWindow(m_view);
+    initialize(configuration.get());
+}
+
+PlatformWebView::PlatformWebView(WKPageConfigurationRef configuration)
+{
+    initialize(configuration);
+}
+
+PlatformWebView::PlatformWebView(WKPageRef relatedPage)
+{
+    WKRetainPtr<WKPageConfigurationRef> configuration = adoptWK(WKPageConfigurationCreate());
+    WKPageConfigurationSetContext(configuration.get(), WKPageGetContext(relatedPage));
+    WKPageConfigurationSetPageGroup(configuration.get(), WKPageGetPageGroup(relatedPage));
+    WKPageConfigurationSetRelatedPage(configuration.get(), relatedPage);
+
+    initialize(configuration.get());
 }
 
 PlatformWebView::~PlatformWebView()
 {
     delete m_window;
+}
+
+void PlatformWebView::initialize(WKPageConfigurationRef configurationRef)
+{
+    m_view = new QQuickWebView(configurationRef);
+    m_view->setAllowAnyHTTPSCertificateForLocalHost(true);
+    m_view->componentComplete();
+
+    m_window = new WrapperWindow(m_view);
 }
 
 void PlatformWebView::resizeTo(unsigned width, unsigned height)

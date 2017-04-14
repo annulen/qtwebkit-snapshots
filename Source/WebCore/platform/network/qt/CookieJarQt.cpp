@@ -137,18 +137,30 @@ void getHostnamesWithCookies(const NetworkStorageSession& session, HashSet<Strin
         jar->getHostnamesWithCookies(hostnames);
 }
 
-void deleteCookiesForHostname(const NetworkStorageSession& session, const String& hostname)
+void deleteCookiesForHostnames(const NetworkStorageSession& session, const Vector<String>& cookieHostNames)
 {
     ASSERT_UNUSED(session, !session.context()); // Not yet implemented for cookie jars other than the shared one.
     SharedCookieJarQt* jar = SharedCookieJarQt::shared();
-    if (jar)
-        jar->deleteCookiesForHostname(hostname);
+    if (jar) {
+        // QTFIXME: Change after no_sql merge
+        for (auto& hostname : cookieHostNames)
+            jar->deleteCookiesForHostname(hostname);
+    }
 }
 
 void deleteAllCookies(const NetworkStorageSession& session)
 {
     ASSERT_UNUSED(session, !session.context()); // Not yet implemented for cookie jars other than the shared one.
     SharedCookieJarQt* jar = SharedCookieJarQt::shared();
+    if (jar)
+        jar->deleteAllCookies();
+}
+
+void deleteAllCookiesModifiedSince(const NetworkStorageSession& session, std::chrono::system_clock::time_point)
+{
+    ASSERT_UNUSED(session, !session.context()); // Not yet implemented for cookie jars other than the shared one.
+    SharedCookieJarQt* jar = SharedCookieJarQt::shared();
+    // QTFIXME: Change after no_sql merge
     if (jar)
         jar->deleteAllCookies();
 }

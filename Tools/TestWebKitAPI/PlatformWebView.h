@@ -87,7 +87,7 @@ public:
 private:
 #if PLATFORM(MAC)
     void initialize(WKPageConfigurationRef, Class wkViewSubclass);
-#elif PLATFORM(GTK)
+#elif PLATFORM(GTK) || PLATFORM(QT)
     void initialize(WKPageConfigurationRef);
 #endif
 

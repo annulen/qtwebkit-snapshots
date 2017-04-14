@@ -72,6 +72,7 @@ public:
     virtual ~CoordinatedGraphicsScene();
     void paintToCurrentGLContext(const WebCore::TransformationMatrix&, float, const WebCore::FloatRect&, const WebCore::Color& backgroundColor, bool drawsBackground, const WebCore::FloatPoint&, WebCore::TextureMapper::PaintFlags = 0);
     void paintToGraphicsContext(PlatformGraphicsContext*, const WebCore::Color& backgroundColor, bool drawsBackground);
+    void setScrollPosition(const WebCore::FloatPoint&);
     void detach();
     void appendUpdate(std::function<void()>);
 

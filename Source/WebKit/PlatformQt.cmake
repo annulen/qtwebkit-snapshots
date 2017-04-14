@@ -18,6 +18,8 @@ list(APPEND WebKit_INCLUDE_DIRECTORIES
     "${DERIVED_SOURCES_JAVASCRIPTCORE_DIR}"
     "${DERIVED_SOURCES_WEBCORE_DIR}"
     "${JAVASCRIPTCORE_DIR}"
+    "${THIRDPARTY_DIR}/ANGLE"
+    "${THIRDPARTY_DIR}/ANGLE/include/KHR"
 
     # Copied from WebCore/CMakeLists.txt
     "${WEBCORE_DIR}/Modules/airplay"
@@ -145,6 +147,7 @@ list(APPEND WebKit_INCLUDE_DIRECTORIES
     "${WEBCORE_DIR}/platform/network"
     "${WEBCORE_DIR}/platform/network/qt"
     "${WEBCORE_DIR}/platform/text/qt"
+    "${WEBCORE_DIR}/plugins/qt"
     "${WEBCORE_DIR}/rendering"
     "${WEBCORE_DIR}/rendering/style"
 
@@ -225,8 +228,19 @@ list(APPEND WebKit_SYSTEM_INCLUDE_DIRECTORIES
 # Build the include path with duplicates removed
 list(REMOVE_DUPLICATES WebKit_SYSTEM_INCLUDE_DIRECTORIES)
 
+if (ENABLE_WEBKIT2)
+    if (APPLE)
+        set(WEBKIT2_LIBRARY -Wl,-force_load WebKit2)
+    elseif (UNIX)
+        set(WEBKIT2_LIBRARY -Wl,--whole-archive WebKit2 -Wl,--no-whole-archive)
+    endif ()
+else ()
+    set(WEBKIT2_LIBRARY WebKit2)
+endif ()
+
 list(APPEND WebKit_LIBRARIES
     PRIVATE
+        ${WEBKIT2_LIBRARY}
         ${ICU_LIBRARIES}
         ${Qt5Positioning_LIBRARIES}
         ${X11_X11_LIB}
@@ -276,12 +290,6 @@ if (ENABLE_NETSCAPE_PLUGIN_API)
         list(APPEND WebKit_SOURCES
             qt/Plugins/PluginPackageQt.cpp
             qt/Plugins/PluginViewQt.cpp
-        )
-    endif ()
-
-    if (PLUGIN_BACKEND_XLIB)
-        list(APPEND WebKit_SOURCES
-            qt/Plugins/QtX11ImageConversion.cpp
         )
     endif ()
 
@@ -798,4 +806,10 @@ if (COMPILER_IS_GCC_OR_CLANG)
     )
 endif ()
 
-add_subdirectory(qt/tests)
+if (ENABLE_WEBKIT2)
+    add_subdirectory(qt/declarative)
+endif ()
+
+if (ENABLE_API_TESTS)
+    add_subdirectory(qt/tests)
+endif ()

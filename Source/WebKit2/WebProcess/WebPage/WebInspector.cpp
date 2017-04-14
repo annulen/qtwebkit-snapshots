@@ -82,6 +82,13 @@ void WebInspector::openFrontendConnection(bool underTest)
 
     IPC::Connection::Identifier connectionIdentifier(listeningPort);
     IPC::Attachment connectionClientPort(listeningPort, MACH_MSG_TYPE_MAKE_SEND);
+#elif OS(WINDOWS)
+    IPC::Connection::Identifier connectionIdentifier, clientIdentifier;
+    if (!IPC::Connection::createServerAndClientIdentifiers(connectionIdentifier, clientIdentifier)) {
+        // log it?
+        return;
+    }
+    IPC::Attachment connectionClientPort(clientIdentifier);
 #else
     notImplemented();
     return;

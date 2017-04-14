@@ -34,7 +34,7 @@
 #include <QGuiApplication>
 #include <QStringList>
 #include <QtGlobal>
-#include <WebCore/RunLoop.h>
+#include <wtf/RunLoop.h>
 
 using namespace WebCore;
 
@@ -99,7 +99,7 @@ Q_DECL_EXPORT int PluginProcessMain(int argc, char** argv)
     parameters.connectionIdentifier = identifier;
     parameters.extraInitializationData.add("plugin-path", app.arguments().at(2));
 
-    WebKit::PluginProcess::shared().initialize(parameters);
+    WebKit::PluginProcess::singleton().initialize(parameters);
 
     RunLoop::run();
 
