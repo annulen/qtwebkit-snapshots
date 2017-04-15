@@ -751,6 +751,11 @@ void MediaPlayerPrivateMediaFoundation::notifyDeleted()
         (*it)->onMediaPlayerDeleted();
 }
 
+void MediaPlayerPrivateMediaFoundation::setNaturalSize(const FloatSize& size)
+{
+    m_cachedNaturalSize = size;
+}
+
 bool MediaPlayerPrivateMediaFoundation::createOutputNode(COMPtr<IMFStreamDescriptor> sourceSD, COMPtr<IMFTopologyNode>& node)
 {
     if (!MFCreateTopologyNodePtr() || !MFCreateAudioRendererActivatePtr() || !MFCreateVideoRendererActivatePtr())
