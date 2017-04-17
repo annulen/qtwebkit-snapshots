@@ -26,7 +26,7 @@
 #include "config.h"
 #include "PluginProcess.h"
 
-#if ENABLE(PLUGIN_PROCESS)
+#if ENABLE(NETSCAPE_PLUGIN_API)
 
 #include "PluginProcessCreationParameters.h"
 #include <WebCore/NotImplemented.h>
@@ -44,4 +44,4 @@ void PluginProcess::platformInitializePluginProcess(PluginProcessCreationParamet
 
 } // namespace WebKit
 
-#endif // ENABLE(PLUGIN_PROCESS)
+#endif // ENABLE(NETSCAPE_PLUGIN_API)
