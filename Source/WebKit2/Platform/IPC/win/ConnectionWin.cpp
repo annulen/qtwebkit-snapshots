@@ -356,4 +356,14 @@ bool Connection::dispatchSentMessagesUntil(const Vector<HWND>& windows, WTF::Bin
     }
 }
 
+void Connection::willSendSyncMessage(unsigned flags)
+{
+    UNUSED_PARAM(flags);
+}
+
+void Connection::didReceiveSyncReply(unsigned flags)
+{
+    UNUSED_PARAM(flags);
+}
+
 } // namespace IPC
