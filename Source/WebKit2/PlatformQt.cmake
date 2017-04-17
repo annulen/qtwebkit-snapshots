@@ -235,6 +235,16 @@ else ()
     )
 endif ()
 
+if (ENABLE_NETSCAPE_PLUGIN_API)
+    # We don't build PluginProcess on Win and Mac because we don't
+    # support WK2 NPAPI on these platforms, however NPAPI works in WK1.
+    # Some WK2 code is guarded with ENABLE(NETSCAPE_PLUGIN_API) now
+    # so it should be compiled even when we don't want PluginProcess
+    # Enabling PLUGIN_PROCESS without building PluginProcess executable
+    # fixes things
+    add_definitions(-DENABLE_PLUGIN_PROCESS=1)
+endif ()
+
 if (ENABLE_QT_WEBCHANNEL)
     list(APPEND WebKit2_SOURCES
         UIProcess/API/qt/qwebchannelwebkittransport.cpp
