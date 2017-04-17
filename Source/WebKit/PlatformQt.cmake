@@ -231,11 +231,14 @@ list(REMOVE_DUPLICATES WebKit_SYSTEM_INCLUDE_DIRECTORIES)
 if (ENABLE_WEBKIT2)
     if (APPLE)
         set(WEBKIT2_LIBRARY -Wl,-force_load WebKit2)
+    elseif (MSVC)
+        set(WEBKIT2_LIBRARY "-WHOLEARCHIVE:WebKit2")
     elseif (UNIX)
         set(WEBKIT2_LIBRARY -Wl,--whole-archive WebKit2 -Wl,--no-whole-archive)
+    else ()
+        message(WARNING "Unknown system, linking with WebKit2 may fail!")
+        set(WEBKIT2_LIBRARY WebKit2)
     endif ()
-else ()
-    set(WEBKIT2_LIBRARY WebKit2)
 endif ()
 
 list(APPEND WebKit_LIBRARIES
@@ -246,6 +249,8 @@ list(APPEND WebKit_LIBRARIES
         ${X11_X11_LIB}
         ${X11_Xcomposite_LIB}
         ${X11_Xrender_LIB}
+        ${Qt5Quick_LIBRARIES}
+	${Qt5WebChannel_LIBRARIES}
     PUBLIC
         ${Qt5Core_LIBRARIES}
         ${Qt5Gui_LIBRARIES}
