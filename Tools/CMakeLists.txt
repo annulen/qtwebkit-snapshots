@@ -39,5 +39,5 @@ if (WIN32)
 endif ()
 
 if (ENABLE_WEBKIT2 AND ENABLE_API_TESTS)
-    add_subdirectory(TestWebKitAPI)
+#    add_subdirectory(TestWebKitAPI)
 endif ()
