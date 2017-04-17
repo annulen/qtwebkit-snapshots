@@ -28,7 +28,7 @@
 #include "config.h"
 #include "PluginProcessMainUnix.h"
 
-#if ENABLE(NETSCAPE_PLUGIN_API)
+#if ENABLE(PLUGIN_PROCESS)
 
 #include "ChildProcessMain.h"
 #include "Logging.h"

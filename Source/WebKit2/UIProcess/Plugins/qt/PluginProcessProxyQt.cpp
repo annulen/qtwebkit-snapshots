@@ -26,7 +26,7 @@
 #include "config.h"
 #include "PluginProcessProxy.h"
 
-#if ENABLE(NETSCAPE_PLUGIN_API)
+#if ENABLE(PLUGIN_PROCESS)
 
 #include "ProcessExecutablePath.h"
 #include <QByteArray>
@@ -250,4 +250,4 @@ bool PluginProcessProxy::scanPlugin(const String& pluginPath, RawPluginMetaData&
 
 } // namespace WebKit
 
-#endif // ENABLE(NETSCAPE_PLUGIN_API)
+#endif // ENABLE(PLUGIN_PROCESS)
