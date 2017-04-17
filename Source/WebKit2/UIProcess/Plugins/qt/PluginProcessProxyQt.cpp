@@ -58,6 +58,8 @@ void PluginProcessProxy::platformInitializePluginProcess(PluginProcessCreationPa
 {
 }
 
+#if PLUGIN_ARCHITECTURE(X11)
+
 static std::unique_ptr<QFile> cacheFile()
 {
     QString cachePath = QStandardPaths::writableLocation(QStandardPaths::CacheLocation);
@@ -243,6 +245,8 @@ bool PluginProcessProxy::scanPlugin(const String& pluginPath, RawPluginMetaData&
     appendToCacheFile(QJsonObject::fromVariantMap(map));
     return true;
 }
+
+#endif // PLUGIN_ARCHITECTURE(X11)
 
 } // namespace WebKit
 

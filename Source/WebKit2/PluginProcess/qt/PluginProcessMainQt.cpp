@@ -65,6 +65,7 @@ static bool initializeGtk()
 
 Q_DECL_EXPORT int PluginProcessMain(int argc, char** argv)
 {
+#if PLUGIN_ARCHITECTURE(X11)
     QByteArray suppressOutput = qgetenv("QT_WEBKIT_SUPPRESS_WEB_PROCESS_OUTPUT");
     if (!suppressOutput.isEmpty() && suppressOutput != "0")
         qInstallMessageHandler(messageHandler);
@@ -102,6 +103,7 @@ Q_DECL_EXPORT int PluginProcessMain(int argc, char** argv)
     WebKit::PluginProcess::singleton().initialize(parameters);
 
     RunLoop::run();
+#endif
 
     return 0;
 }
