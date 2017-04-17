@@ -23,8 +23,21 @@ include_directories(SYSTEM
 add_library(qmlwebkitplugin MODULE plugin.cpp)
 target_link_libraries(qmlwebkitplugin
     WebKit Qt5::Quick)
+
+set(qmlwebkit_output_dir "${CMAKE_BINARY_DIR}/imports/QtWebKit")
+set(qmlwebkit_install_dir "${QML_INSTALL_DIR}/QtWebKit")
+
 set_target_properties(qmlwebkitplugin PROPERTIES
-    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/imports/QtWebKit")
+    ARCHIVE_OUTPUT_DIRECTORY ${qmlwebkit_output_dir}
+    LIBRARY_OUTPUT_DIRECTORY ${qmlwebkit_output_dir}
+    RUNTIME_OUTPUT_DIRECTORY ${qmlwebkit_output_dir}
+    ARCHIVE_OUTPUT_DIRECTORY_DEBUG ${qmlwebkit_output_dir}
+    LIBRARY_OUTPUT_DIRECTORY_DEBUG ${qmlwebkit_output_dir}
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG ${qmlwebkit_output_dir}
+    ARCHIVE_OUTPUT_DIRECTORY_RELEASE ${qmlwebkit_output_dir}
+    LIBRARY_OUTPUT_DIRECTORY_RELEASE ${qmlwebkit_output_dir}
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE ${qmlwebkit_output_dir}
+)
 
 add_custom_target(
     qmlwebkitplugin-files ALL
@@ -34,8 +47,8 @@ add_custom_target(
 )
 
 install(TARGETS qmlwebkitplugin
-        DESTINATION "${QML_INSTALL_DIR}/QtWebKit")
+        DESTINATION ${qmlwebkit_install_dir})
 install(FILES qmldir plugins.qmltypes
-        DESTINATION "${QML_INSTALL_DIR}/QtWebKit")
+        DESTINATION ${qmlwebkit_install_dir})
 
 add_subdirectory(experimental)
