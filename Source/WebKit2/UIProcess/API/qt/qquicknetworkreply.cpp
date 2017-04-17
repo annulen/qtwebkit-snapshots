@@ -21,7 +21,6 @@
 #include "config.h"
 #include "qquicknetworkreply_p.h"
 
-#include "SharedMemory.h"
 #include "QtNetworkReplyData.h"
 #include "QtNetworkRequestData.h"
 #include "qquickwebview_p.h"
