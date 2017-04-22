@@ -36,7 +36,9 @@ class ArgumentDecoder;
 class ArgumentEncoder;
 }
 
+#if !PLATFORM(QT) // Qt provides conflicting declaration of NSData
 OBJC_CLASS NSData;
+#endif
 
 namespace API {
 

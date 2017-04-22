@@ -58,6 +58,11 @@
 
 #if PLATFORM(GTK)
 #define ENABLE_SHAREABLE_RESOURCE 1
+#elif OS(WINDOWS)
+#include "config.h"
+
+#undef WEBCORE_EXPORT
+#define WEBCORE_EXPORT WTF_EXPORT_DECLARATION
 #endif
 
 /* When C++ exceptions are disabled, the C++ library defines |try| and |catch|

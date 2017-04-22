@@ -202,6 +202,8 @@ if (ENABLE_WEBKIT2)
         ${TESTWEBKITAPI_DIR}/TestsController.cpp
     )
 
+    target_link_libraries(TestWebKitAPIBase ${test_webkit2_api_LIBRARIES})
+
     add_dependencies(TestWebKitAPIBase WebKit2 ${ForwardingHeadersForTestWebKitAPI_NAME} ${ForwardingNetworkHeadersForTestWebKitAPI_NAME})
 
     foreach (testName ${test_webkit2_api_BINARIES})

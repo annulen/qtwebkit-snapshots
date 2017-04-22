@@ -49,6 +49,7 @@ PassRefPtr<WebPreferences> WebPreferences::createWithLegacyDefaults(const String
     // We can just compute different defaults for modern and legacy APIs in WebPreferencesDefinitions.h macros.
     preferences->registerDefaultBoolValueForKey(WebPreferencesKey::javaEnabledKey(), true);
     preferences->registerDefaultBoolValueForKey(WebPreferencesKey::javaEnabledForLocalFilesKey(), true);
+    preferences->registerDefaultBoolValueForKey(WebPreferencesKey::mediaSourceEnabledKey(), false);
     preferences->registerDefaultBoolValueForKey(WebPreferencesKey::pluginsEnabledKey(), true);
     preferences->registerDefaultUInt32ValueForKey(WebPreferencesKey::storageBlockingPolicyKey(), WebCore::SecurityOrigin::AllowAllStorage);
     return preferences.release();

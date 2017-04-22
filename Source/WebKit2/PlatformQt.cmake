@@ -3,13 +3,19 @@ set(WebKit2_NetworkProcess_OUTPUT_NAME QtWebNetworkProcess)
 set(WebKit2_PluginProcess_OUTPUT_NAME QtWebPluginProcess)
 set(WebKit2_DatabaseProcess_OUTPUT_NAME QtWebDatabaseProcess)
 
-#set(WebKit2_USE_PREFIX_HEADER ON)
+file(MAKE_DIRECTORY ${DERIVED_SOURCES_WEBKIT2_DIR})
 
-# FIXME: It should be in WebKitFS actually
-set(FORWARDING_HEADERS_DIR "${DERIVED_SOURCES_DIR}/ForwardingHeaders")
+if (SHARED_CORE)
+    set(WebKit2_LIBRARY_TYPE SHARED)
+else ()
+    set(WebKit2_LIBRARY_TYPE STATIC)
+endif ()
+
+#set(WebKit2_USE_PREFIX_HEADER ON)
 
 list(APPEND WebKit2_INCLUDE_DIRECTORIES
     "${FORWARDING_HEADERS_DIR}"
+    "${FORWARDING_HEADERS_DIR}/QtWebKit"
 
     "${WEBCORE_DIR}/platform/graphics/opentype"
     "${WEBCORE_DIR}/platform/graphics/qt"
@@ -18,10 +24,13 @@ list(APPEND WebKit2_INCLUDE_DIRECTORIES
 
     # The WebKit2 Qt APIs depend on qwebkitglobal.h, which lives in WebKit
     "${WEBKIT_DIR}/qt/Api"
+    "${WEBKIT_DIR}/qt/Plugins"
 
     "${WEBKIT2_DIR}/NetworkProcess/CustomProtocols/qt"
+    "${WEBKIT2_DIR}/NetworkProcess/qt"
 
     "${WEBKIT2_DIR}/Shared/CoordinatedGraphics"
+    "${WEBKIT2_DIR}/Shared/Plugins/unix"
     "${WEBKIT2_DIR}/Shared/qt"
     "${WEBKIT2_DIR}/Shared/unix"
 
@@ -32,13 +41,17 @@ list(APPEND WebKit2_INCLUDE_DIRECTORIES
     "${WEBKIT2_DIR}/UIProcess/InspectorServer/qt"
     "${WEBKIT2_DIR}/UIProcess/gstreamer"
     "${WEBKIT2_DIR}/UIProcess/qt"
+
+    "${WEBKIT2_DIR}/WebProcess/Plugins/Netscape/unix"
+    "${WEBKIT2_DIR}/WebProcess/Plugins/Netscape/x11"
     "${WEBKIT2_DIR}/WebProcess/WebCoreSupport/qt"
     "${WEBKIT2_DIR}/WebProcess/WebPage/CoordinatedGraphics"
     "${WEBKIT2_DIR}/WebProcess/qt"
 )
 
 list(APPEND WebKit2_SOURCES
-    NetworkProcess/CustomProtocols/qt/CustomProtocolManagerImpl.cpp
+    DatabaseProcess/qt/DatabaseProcessMainQt.cpp
+
     NetworkProcess/CustomProtocols/qt/CustomProtocolManagerQt.cpp
 
     NetworkProcess/Downloads/qt/DownloadQt.cpp
@@ -47,6 +60,7 @@ list(APPEND WebKit2_SOURCES
     NetworkProcess/qt/NetworkProcessMainQt.cpp
     NetworkProcess/qt/NetworkProcessQt.cpp
     NetworkProcess/qt/RemoteNetworkingContextQt.cpp
+    NetworkProcess/qt/QtNetworkAccessManager.cpp
 
     Platform/qt/LoggingQt.cpp
     Platform/qt/ModuleQt.cpp
@@ -64,7 +78,12 @@ list(APPEND WebKit2_SOURCES
     Shared/CoordinatedGraphics/CoordinatedGraphicsScene.cpp
     Shared/CoordinatedGraphics/WebCoordinatedSurface.cpp
 
+    Shared/Plugins/Netscape/x11/NetscapePluginModuleX11.cpp
+
+    Shared/Plugins/unix/PluginSearchPath.cpp
+
     Shared/qt/ArgumentCodersQt.cpp
+    Shared/qt/ChildProcessMainQt.cpp
     Shared/qt/NativeWebKeyboardEventQt.cpp
     Shared/qt/NativeWebMouseEventQt.cpp
     Shared/qt/NativeWebTouchEventQt.cpp
@@ -77,8 +96,6 @@ list(APPEND WebKit2_SOURCES
     Shared/qt/WebEventFactoryQt.cpp
     Shared/qt/WebGestureEvent.cpp
 
-    Shared/unix/ChildProcessMain.cpp
-
     UIProcess/BackingStore.cpp
     UIProcess/DefaultUndoController.cpp
     UIProcess/DrawingAreaProxyImpl.cpp
@@ -89,13 +106,13 @@ list(APPEND WebKit2_SOURCES
     UIProcess/API/cpp/qt/WKStringQt.cpp
     UIProcess/API/cpp/qt/WKURLQt.cpp
 
+    UIProcess/API/qt/APIWebsiteDataStoreQt.cpp
     UIProcess/API/qt/qquicknetworkreply.cpp
     UIProcess/API/qt/qquicknetworkrequest.cpp
     UIProcess/API/qt/qquickurlschemedelegate.cpp
     UIProcess/API/qt/qquickwebpage.cpp
     UIProcess/API/qt/qquickwebview.cpp
     UIProcess/API/qt/qtwebsecurityorigin.cpp
-    UIProcess/API/qt/qwebchannelwebkittransport.cpp
     UIProcess/API/qt/qwebdownloaditem.cpp
     UIProcess/API/qt/qwebdownloaditem_p.h
     UIProcess/API/qt/qwebdownloaditem_p_p.h
@@ -121,6 +138,8 @@ list(APPEND WebKit2_SOURCES
 
     UIProcess/Plugins/qt/PluginProcessProxyQt.cpp
 
+    UIProcess/Plugins/unix/PluginInfoStoreUnix.cpp
+
     UIProcess/Storage/StorageManager.cpp
 
     UIProcess/WebsiteData/unix/WebsiteDataStoreUnix.cpp
@@ -130,6 +149,7 @@ list(APPEND WebKit2_SOURCES
 
     UIProcess/qt/BackingStoreQt.cpp
     UIProcess/qt/PageViewportControllerClientQt.cpp
+    UIProcess/qt/QrcSchemeHandler.cpp
     UIProcess/qt/QtDialogRunner.cpp
     UIProcess/qt/QtDownloadManager.cpp
     UIProcess/qt/QtGestureRecognizer.cpp
@@ -147,7 +167,6 @@ list(APPEND WebKit2_SOURCES
     UIProcess/qt/TextCheckerQt.cpp
     UIProcess/qt/WebColorPickerQt.cpp
     UIProcess/qt/WebContextMenuProxyQt.cpp
-    UIProcess/qt/WebFullScreenManagerProxyQt.cpp
     UIProcess/qt/WebGeolocationProviderQt.cpp
     UIProcess/qt/WebInspectorProxyQt.cpp
     UIProcess/qt/WebPageProxyQt.cpp
@@ -160,6 +179,10 @@ list(APPEND WebKit2_SOURCES
     WebProcess/InjectedBundle/qt/InjectedBundleQt.cpp
 
     WebProcess/Plugins/Netscape/qt/PluginProxyQt.cpp
+
+    WebProcess/Plugins/Netscape/unix/NetscapePluginUnix.cpp
+
+    WebProcess/Plugins/Netscape/x11/NetscapePluginX11.cpp
 
     WebProcess/WebCoreSupport/qt/WebContextMenuClientQt.cpp
     WebProcess/WebCoreSupport/qt/WebDragClientQt.cpp
@@ -178,11 +201,13 @@ list(APPEND WebKit2_SOURCES
 
     WebProcess/qt/QtBuiltinBundle.cpp
     WebProcess/qt/QtBuiltinBundlePage.cpp
-    WebProcess/qt/QtNetworkAccessManager.cpp
-    WebProcess/qt/QtNetworkReply.cpp
     WebProcess/qt/SeccompFiltersWebProcessQt.cpp
     WebProcess/qt/WebProcessMainQt.cpp
     WebProcess/qt/WebProcessQt.cpp
+)
+
+qt5_add_resources(WebKit2_SOURCES
+    WebKit2.qrc
 )
 
 if (APPLE)
@@ -211,15 +236,34 @@ else ()
     )
 endif ()
 
+if (ENABLE_NETSCAPE_PLUGIN_API)
+    # We don't build PluginProcess on Win and Mac because we don't
+    # support WK2 NPAPI on these platforms, however NPAPI works in WK1.
+    # Some WK2 code is guarded with ENABLE(NETSCAPE_PLUGIN_API) now
+    # so it should be compiled even when we don't want PluginProcess
+    # Enabling PLUGIN_PROCESS without building PluginProcess executable
+    # fixes things
+    add_definitions(-DENABLE_PLUGIN_PROCESS=1)
+endif ()
+
+if (ENABLE_QT_WEBCHANNEL)
+    list(APPEND WebKit2_SOURCES
+        UIProcess/API/qt/qwebchannelwebkittransport.cpp
+    )
+endif ()
+
 list(APPEND WebKit2_SYSTEM_INCLUDE_DIRECTORIES
     ${GSTREAMER_INCLUDE_DIRS}
     ${Qt5Quick_INCLUDE_DIRS}
     ${Qt5Quick_PRIVATE_INCLUDE_DIRS}
+    ${SQLITE_INCLUDE_DIR}
 )
 
 list(APPEND WebKit2_LIBRARIES
     ${Qt5Positioning_LIBRARIES}
     ${Qt5Quick_LIBRARIES}
+    ${Qt5WebChannel_LIBRARIES}
+    ${X11_X11_LIB}
 )
 
 list(APPEND WebKit2_MESSAGES_IN_FILES
@@ -233,18 +277,30 @@ list(APPEND WebProcess_SOURCES
 )
 
 # FIXME: Allow building without widgets
-list(APPEND WebProcess_LIBRARIES
+set(WebProcess_LIBRARIES
+    WebKit
     Qt5::Widgets
     WebKitWidgets
+)
+
+set(NetworkProcess_LIBRARIES
+    WebKit
+)
+
+set(DatabaseProcess_LIBRARIES
+    WebKit
+)
+
+set(PluginProcess_LIBRARIES
+    WebKit
 )
 
 list(APPEND NetworkProcess_SOURCES
     NetworkProcess/EntryPoint/qt/NetworkProcessMain.cpp
 )
 
-# FIXME
 list(APPEND DatabaseProcess_SOURCES
-    DatabaseProcess/EntryPoint/unix/DatabaseProcessMain.cpp
+    DatabaseProcess/EntryPoint/qt/DatabaseProcessMain.cpp
 )
 
 list(APPEND PluginProcess_SOURCES
@@ -259,3 +315,8 @@ set(WEBKIT2_EXTRA_DEPENDENCIES
      WebKit2-forwarding-headers
 )
 
+WEBKIT_CREATE_FORWARDING_HEADERS(QtWebKit/private DIRECTORIES UIProcess/API/qt)
+
+if (ENABLE_API_TESTS)
+    add_subdirectory(UIProcess/API/qt/tests)
+endif ()

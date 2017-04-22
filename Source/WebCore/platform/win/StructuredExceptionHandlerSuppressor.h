@@ -1,6 +1,5 @@
 /*
- * Copyright (C) 2011 Zeno Albisser <zeno@webkit.org>
- * Copyright (C) 2012 Nokia Corporation and/or its subsidiary(-ies)
+ * Copyright (C) 2011, 2013 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -24,41 +23,31 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef QtNetworkAccessManager_h
-#define QtNetworkAccessManager_h
+#ifndef StructuredExceptionHandlerSuppressor_h
+#define StructuredExceptionHandlerSuppressor_h
 
-#include <QMultiHash>
-#include <QNetworkAccessManager>
-#include <QNetworkProxy>
-#include <QString>
+#include <excpt.h>
+#include <wtf/Noncopyable.h>
 
-namespace WebKit {
+extern "C" EXCEPTION_DISPOSITION __stdcall exceptionHandler(struct _EXCEPTION_RECORD* exceptionRecord, void* establisherFrame, struct _CONTEXT* contextRecord, void* dispatcherContext);
 
-class WebPage;
-class WebProcess;
+namespace WebCore {
 
-class QtNetworkAccessManager : public QNetworkAccessManager {
-    Q_OBJECT
-public:
-    QtNetworkAccessManager(WebProcess*);
-    void registerApplicationScheme(const WebPage*, const QString& scheme);
-
-protected:
-    QNetworkReply* createRequest(Operation, const QNetworkRequest&, QIODevice* outgoingData = 0) override;
-
-private Q_SLOTS:
-    void onAuthenticationRequired(QNetworkReply *, QAuthenticator *);
-    void onProxyAuthenticationRequired(const QNetworkProxy&, QAuthenticator *);
-    void onSslErrors(QNetworkReply*, const QList<QSslError>&);
-
-private:
-    WebPage* obtainOriginatingWebPage(const QNetworkRequest&);
-
-    QMultiHash<const WebPage*, QString> m_applicationSchemes;
-    WebProcess* m_webProcess;
-
+struct ExceptionRegistration {
+    ExceptionRegistration* prev;
+    void* handler;
 };
 
-} // namespace WebKit
+class StructuredExceptionHandlerSuppressor {
+    WTF_MAKE_NONCOPYABLE(StructuredExceptionHandlerSuppressor);
+public:
+    StructuredExceptionHandlerSuppressor(ExceptionRegistration&);
+    ~StructuredExceptionHandlerSuppressor();
 
-#endif // QtNetworkAccessManager_h
+private:
+    void* m_savedExceptionRegistration;
+};
+
+} // namespace WebCore
+
+#endif // StructuredExceptionHandlerSuppressor_h

@@ -18,6 +18,8 @@ list(APPEND WebKit_INCLUDE_DIRECTORIES
     "${DERIVED_SOURCES_JAVASCRIPTCORE_DIR}"
     "${DERIVED_SOURCES_WEBCORE_DIR}"
     "${JAVASCRIPTCORE_DIR}"
+    "${THIRDPARTY_DIR}/ANGLE"
+    "${THIRDPARTY_DIR}/ANGLE/include/KHR"
 
     # Copied from WebCore/CMakeLists.txt
     "${WEBCORE_DIR}/Modules/airplay"
@@ -145,6 +147,7 @@ list(APPEND WebKit_INCLUDE_DIRECTORIES
     "${WEBCORE_DIR}/platform/network"
     "${WEBCORE_DIR}/platform/network/qt"
     "${WEBCORE_DIR}/platform/text/qt"
+    "${WEBCORE_DIR}/plugins/qt"
     "${WEBCORE_DIR}/rendering"
     "${WEBCORE_DIR}/rendering/style"
 
@@ -225,13 +228,29 @@ list(APPEND WebKit_SYSTEM_INCLUDE_DIRECTORIES
 # Build the include path with duplicates removed
 list(REMOVE_DUPLICATES WebKit_SYSTEM_INCLUDE_DIRECTORIES)
 
+if (ENABLE_WEBKIT2)
+    if (APPLE)
+        set(WEBKIT2_LIBRARY -Wl,-force_load WebKit2)
+    elseif (MSVC)
+        set(WEBKIT2_LIBRARY "-WHOLEARCHIVE:WebKit2")
+    elseif (UNIX)
+        set(WEBKIT2_LIBRARY -Wl,--whole-archive WebKit2 -Wl,--no-whole-archive)
+    else ()
+        message(WARNING "Unknown system, linking with WebKit2 may fail!")
+        set(WEBKIT2_LIBRARY WebKit2)
+    endif ()
+endif ()
+
 list(APPEND WebKit_LIBRARIES
     PRIVATE
+        ${WEBKIT2_LIBRARY}
         ${ICU_LIBRARIES}
         ${Qt5Positioning_LIBRARIES}
         ${X11_X11_LIB}
         ${X11_Xcomposite_LIB}
         ${X11_Xrender_LIB}
+        ${Qt5Quick_LIBRARIES}
+	${Qt5WebChannel_LIBRARIES}
     PUBLIC
         ${Qt5Core_LIBRARIES}
         ${Qt5Gui_LIBRARIES}
@@ -276,12 +295,6 @@ if (ENABLE_NETSCAPE_PLUGIN_API)
         list(APPEND WebKit_SOURCES
             qt/Plugins/PluginPackageQt.cpp
             qt/Plugins/PluginViewQt.cpp
-        )
-    endif ()
-
-    if (PLUGIN_BACKEND_XLIB)
-        list(APPEND WebKit_SOURCES
-            qt/Plugins/QtX11ImageConversion.cpp
         )
     endif ()
 
@@ -338,7 +351,7 @@ ecm_generate_headers(
     RELATIVE
         qt/Api
     OUTPUT_DIR
-        "${DERIVED_SOURCES_DIR}/ForwardingHeaders/QtWebKit"
+        "${FORWARDING_HEADERS_DIR}/QtWebKit"
     REQUIRED_HEADERS
         QtWebKit_HEADERS
 )
@@ -349,7 +362,7 @@ set(WebKit_PUBLIC_HEADERS
     ${QtWebKit_FORWARDING_HEADERS}
 )
 
-generate_header("${DERIVED_SOURCES_DIR}/ForwardingHeaders/QtWebKit/qtwebkitversion.h"
+generate_header("${FORWARDING_HEADERS_DIR}/QtWebKit/qtwebkitversion.h"
     WebKit_PUBLIC_HEADERS
     "#ifndef QT_QTWEBKIT_VERSION_H
 #define QT_QTWEBKIT_VERSION_H
@@ -360,11 +373,11 @@ generate_header("${DERIVED_SOURCES_DIR}/ForwardingHeaders/QtWebKit/qtwebkitversi
 #endif
 ")
 
-generate_header("${DERIVED_SOURCES_DIR}/ForwardingHeaders/QtWebKit/QtWebKitVersion"
+generate_header("${FORWARDING_HEADERS_DIR}/QtWebKit/QtWebKitVersion"
     WebKit_PUBLIC_HEADERS
     "#include \"qtwebkitversion.h\"")
 
-generate_header("${DERIVED_SOURCES_DIR}/ForwardingHeaders/QtWebKit/QtWebKitDepends"
+generate_header("${FORWARDING_HEADERS_DIR}/QtWebKit/QtWebKitDepends"
     WebKit_PUBLIC_HEADERS
     "#ifdef __cplusplus /* create empty PCH in C mode */
 #include <QtCore/QtCore>
@@ -393,7 +406,7 @@ install(
 set(WEBKIT_PKGCONGIG_DEPS "Qt5Core Qt5Gui Qt5Network")
 set(WEBKIT_PRI_DEPS "core gui network")
 set(WEBKIT_PRI_EXTRA_LIBS "")
-set(WEBKIT_PRI_RUNTIME_DEPS "sql core_private gui_private")
+set(WEBKIT_PRI_RUNTIME_DEPS "core_private gui_private")
 
 if (QT_WEBCHANNEL)
     set(WEBKIT_PRI_RUNTIME_DEPS "webchannel ${WEBKIT_PRI_RUNTIME_DEPS}")
@@ -424,8 +437,6 @@ if (QT_STATIC_BUILD)
     if (MSVC)
         set(LIB_PREFIX "lib")
     endif ()
-    set(WEBKIT_PKGCONGIG_DEPS "${WEBKIT_PKGCONGIG_DEPS} Qt5Sql")
-    set(WEBKIT_PRI_DEPS "${WEBKIT_PRI_DEPS} sql")
     set(WEBKITWIDGETS_PKGCONGIG_DEPS "${WEBKITWIDGETS_PKGCONGIG_DEPS} Qt5PrintSupport")
     set(WEBKITWIDGETS_PRI_DEPS "${WEBKITWIDGETS_PRI_DEPS} printsupport")
     set(EXTRA_LIBS_NAMES WebCore JavaScriptCore WTF xml2)
@@ -591,7 +602,7 @@ ecm_generate_headers(
     RELATIVE
         qt/WidgetApi
     OUTPUT_DIR
-        "${DERIVED_SOURCES_DIR}/ForwardingHeaders/QtWebKitWidgets"
+        "${FORWARDING_HEADERS_DIR}/QtWebKitWidgets"
     REQUIRED_HEADERS
         QtWebKitWidgets_HEADERS
 )
@@ -601,7 +612,7 @@ set(WebKitWidgets_PUBLIC_HEADERS
     ${QtWebKitWidgets_FORWARDING_HEADERS}
 )
 
-generate_header("${DERIVED_SOURCES_DIR}/ForwardingHeaders/QtWebKitWidgets/qtwebkitwidgetsversion.h"
+generate_header("${FORWARDING_HEADERS_DIR}/QtWebKitWidgets/qtwebkitwidgetsversion.h"
     WebKitWidgets_PUBLIC_HEADERS
     "#ifndef QT_QTWEBKITWIDGETS_VERSION_H
 #define QT_QTWEBKITWIDGETS_VERSION_H
@@ -612,11 +623,11 @@ generate_header("${DERIVED_SOURCES_DIR}/ForwardingHeaders/QtWebKitWidgets/qtwebk
 #endif
 ")
 
-generate_header("${DERIVED_SOURCES_DIR}/ForwardingHeaders/QtWebKitWidgets/QtWebKitWidgetsVersion"
+generate_header("${FORWARDING_HEADERS_DIR}/QtWebKitWidgets/QtWebKitWidgetsVersion"
     WebKitWidgets_PUBLIC_HEADERS
     "#include \"qtwebkitwidgetsversion.h\"")
 
-generate_header("${DERIVED_SOURCES_DIR}/ForwardingHeaders/QtWebKitWidgets/QtWebKitWidgetsDepends"
+generate_header("${FORWARDING_HEADERS_DIR}/QtWebKitWidgets/QtWebKitWidgetsDepends"
     WebKitWidgets_PUBLIC_HEADERS
     "#ifdef __cplusplus /* create empty PCH in C mode */
 #include <QtCore/QtCore>
@@ -798,4 +809,10 @@ if (COMPILER_IS_GCC_OR_CLANG)
     )
 endif ()
 
-add_subdirectory(qt/tests)
+if (ENABLE_WEBKIT2)
+    add_subdirectory(qt/declarative)
+endif ()
+
+if (ENABLE_API_TESTS)
+    add_subdirectory(qt/tests)
+endif ()

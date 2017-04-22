@@ -49,10 +49,15 @@
 #define _WINSOCKAPI_ /* Prevent inclusion of winsock.h in windows.h */
 #endif
 
-#if !PLATFORM(QT)
 #include <WebCore/config.h>
-#endif
 #include <windows.h>
+
+#undef WEBCORE_EXPORT
+#define WEBCORE_EXPORT WTF_EXPORT_DECLARATION
+#define BUILDING_WEBKIT 1
+#ifndef pid_t
+#define pid_t DWORD
+#endif
 
 #if USE(CG)
 #include <CoreGraphics/CoreGraphics.h>
