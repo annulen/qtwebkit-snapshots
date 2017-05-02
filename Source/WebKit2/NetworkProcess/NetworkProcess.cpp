@@ -63,6 +63,8 @@
 #include "NetworkCacheCoders.h"
 #endif
 
+#include <QDebug>
+
 using namespace WebCore;
 
 namespace WebKit {
@@ -150,6 +152,7 @@ void NetworkProcess::didClose(IPC::Connection&)
 
 void NetworkProcess::didReceiveInvalidMessage(IPC::Connection&, IPC::StringReference, IPC::StringReference)
 {
+    qDebug() << Q_FUNC_INFO;
     RunLoop::current().stop();
 }
 
@@ -181,6 +184,7 @@ void NetworkProcess::lowMemoryHandler(Critical critical)
 
 void NetworkProcess::initializeNetworkProcess(const NetworkProcessCreationParameters& parameters)
 {
+    qDebug() << Q_FUNC_INFO;
     platformInitializeNetworkProcess(parameters);
 
     WTF::setCurrentThreadIsUserInitiated();
@@ -217,6 +221,7 @@ void NetworkProcess::initializeNetworkProcess(const NetworkProcessCreationParame
 
 void NetworkProcess::initializeConnection(IPC::Connection* connection)
 {
+    qDebug() << Q_FUNC_INFO;
     ChildProcess::initializeConnection(connection);
 
 #if ENABLE(SEC_ITEM_SHIM)
@@ -234,7 +239,10 @@ void NetworkProcess::createNetworkConnectionToWebProcess()
 #if USE(UNIX_DOMAIN_SOCKETS)
     IPC::Connection::SocketPair socketPair = IPC::Connection::createPlatformConnection();
 
+    qDebug() << Q_FUNC_INFO << "server = " << socketPair.server;
+
     RefPtr<NetworkConnectionToWebProcess> connection = NetworkConnectionToWebProcess::create(socketPair.server);
+    qDebug() << Q_FUNC_INFO << "connection = " << connection.get();
     m_webProcessConnections.append(connection.release());
 
     IPC::Attachment clientSocket(socketPair.client);

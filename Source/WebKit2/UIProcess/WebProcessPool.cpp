@@ -97,6 +97,8 @@
 #include <wtf/RefCountedLeakCounter.h>
 #endif
 
+#include <QDebug>
+
 using namespace WebCore;
 using namespace WebKit;
 
@@ -329,6 +331,8 @@ void WebProcessPool::textCheckerStateChanged()
 
 NetworkProcessProxy& WebProcessPool::ensureNetworkProcess()
 {
+    qDebug() << Q_FUNC_INFO;
+
     if (m_networkProcess)
         return *m_networkProcess;
 
@@ -387,6 +391,8 @@ NetworkProcessProxy& WebProcessPool::ensureNetworkProcess()
 
 void WebProcessPool::networkProcessCrashed(NetworkProcessProxy* networkProcessProxy)
 {
+    qDebug() << Q_FUNC_INFO;
+
     ASSERT(m_networkProcess);
     ASSERT(networkProcessProxy == m_networkProcess.get());
     m_didNetworkProcessCrash = true;
@@ -404,6 +410,8 @@ void WebProcessPool::networkProcessCrashed(NetworkProcessProxy* networkProcessPr
 
 void WebProcessPool::getNetworkProcessConnection(PassRefPtr<Messages::WebProcessProxy::GetNetworkProcessConnection::DelayedReply> reply)
 {
+    qDebug() << Q_FUNC_INFO;
+
     ASSERT(reply);
 
     ensureNetworkProcess();

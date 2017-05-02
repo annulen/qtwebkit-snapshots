@@ -44,6 +44,7 @@
 #elif PLATFORM(QT)
 #include <QPointer>
 #include <QSocketNotifier>
+#include <QDebug>
 #endif
 
 // Although it's available on Darwin, SOCK_SEQPACKET seems to work differently
@@ -427,6 +428,7 @@ bool Connection::open()
         [protectedThis] {
             protectedThis->readyReadHandler();
         });
+    qDebug() << Q_FUNC_INFO << m_socketNotifier;
 #elif PLATFORM(EFL)
     m_connectionQueue->registerSocketEventHandler(m_socketDescriptor,
         [protectedThis] {

@@ -27,16 +27,19 @@
 #include "ChildProcessMain.h"
 
 #include <stdlib.h>
+#include <QDebug>
 
 namespace WebKit {
 
 bool ChildProcessMainBase::parseCommandLine(int argc, char** argv)
 {
+    qDebug() << Q_FUNC_INFO << argc;
     ASSERT(argc >= 2);
     if (argc < 2)
         return false;
 
     m_parameters.connectionIdentifier = atoi(argv[1]);
+    qDebug() << Q_FUNC_INFO << m_parameters.connectionIdentifier;
     return true;
 }
 

@@ -223,6 +223,7 @@ void NetworkResourceLoader::setDefersLoading(bool defers)
 
 void NetworkResourceLoader::cleanup()
 {
+    fprintf(stderr, "%s\n", __FUNCSIG__);
     ASSERT(RunLoop::isMain());
 
     m_bufferingTimer.stop();
@@ -237,6 +238,7 @@ void NetworkResourceLoader::cleanup()
 
 void NetworkResourceLoader::didConvertToDownload()
 {
+    fprintf(stderr, "%s\n", __FUNCSIG__);
     ASSERT(m_networkLoad);
     m_didConvertToDownload = true;
 #if USE(NETWORK_SESSION)

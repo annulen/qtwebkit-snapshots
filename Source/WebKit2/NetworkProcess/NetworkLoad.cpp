@@ -60,6 +60,7 @@ NetworkLoad::NetworkLoad(NetworkLoadClient& client, const NetworkLoadParameters&
     } else
         ASSERT_NOT_REACHED();
 #else
+    fprintf(stderr, "%s\n", __FUNCSIG__);
     m_handle = ResourceHandle::create(m_networkingContext.get(), parameters.request, this, parameters.defersLoading, parameters.contentSniffingPolicy == SniffContent);
 #endif
 }
@@ -263,6 +264,7 @@ void NetworkLoad::cannotShowURL()
 
 void NetworkLoad::didReceiveResponseAsync(ResourceHandle* handle, const ResourceResponse& receivedResponse)
 {
+    fprintf(stderr, "%s\n", __FUNCSIG__);
     ASSERT_UNUSED(handle, handle == m_handle);
     if (sharedDidReceiveResponse(receivedResponse) == NetworkLoadClient::ShouldContinueDidReceiveResponse::Yes)
         m_handle->continueDidReceiveResponse();

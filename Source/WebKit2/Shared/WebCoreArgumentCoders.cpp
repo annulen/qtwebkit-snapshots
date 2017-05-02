@@ -1825,6 +1825,10 @@ bool ArgumentCoder<FilterOperations>::decode(ArgumentDecoder& decoder, FilterOpe
 
 void ArgumentCoder<SessionID>::encode(ArgumentEncoder& encoder, const SessionID& sessionID)
 {
+    fprintf(stderr, "%s sessionID=%ld\n", __FUNCSIG__, sessionID.sessionID());
+
+    if (!sessionID.sessionID())
+        ASSERT_NOT_REACHED();
     encoder << sessionID.sessionID();
 }
 
@@ -1835,6 +1839,7 @@ bool ArgumentCoder<SessionID>::decode(ArgumentDecoder& decoder, SessionID& sessi
         return false;
 
     sessionID = SessionID(session);
+    fprintf(stderr, "%s sessionID=%ld\n", __FUNCSIG__, sessionID.sessionID());
 
     return true;
 }

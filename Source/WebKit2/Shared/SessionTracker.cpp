@@ -71,6 +71,7 @@ const String& SessionTracker::getIdentifierBase()
 
 NetworkStorageSession* SessionTracker::storageSession(SessionID sessionID)
 {
+    fprintf(stderr, "%s sessionID=%ld\n", __FUNCSIG__, sessionID.sessionID());
     if (sessionID == SessionID::defaultSessionID())
         return &NetworkStorageSession::defaultStorageSession();
     return staticStorageSessionMap().get(sessionID);

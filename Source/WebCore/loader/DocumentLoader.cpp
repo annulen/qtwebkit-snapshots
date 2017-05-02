@@ -618,6 +618,7 @@ void DocumentLoader::continueAfterNavigationPolicy(const ResourceRequest&, bool 
 
 void DocumentLoader::responseReceived(CachedResource* resource, const ResourceResponse& response)
 {
+    fprintf(stderr, "%s\n", __FUNCSIG__);
 #if ENABLE(CONTENT_FILTERING)
     if (m_contentFilter && !m_contentFilter->continueAfterResponseReceived(resource, response))
         return;
@@ -902,6 +903,7 @@ void DocumentLoader::commitData(const char* bytes, size_t length)
 
 void DocumentLoader::dataReceived(CachedResource* resource, const char* data, int length)
 {
+    fprintf(stderr, "%s\n", __FUNCSIG__);
 #if ENABLE(CONTENT_FILTERING)
     if (m_contentFilter && !m_contentFilter->continueAfterDataReceived(resource, data, length))
         return;

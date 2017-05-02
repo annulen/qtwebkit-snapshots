@@ -39,6 +39,8 @@ namespace WebKit {
 
 void NetworkProcess::platformInitializeNetworkProcess(const NetworkProcessCreationParameters& parameters)
 {
+    qDebug() << Q_FUNC_INFO;
+
     if (!parameters.cookiePersistentStoragePath.isEmpty()) {
         WebCore::SharedCookieJarQt* jar = WebCore::SharedCookieJarQt::create(parameters.cookiePersistentStoragePath);
         m_networkAccessManager.setCookieJar(jar);
@@ -56,22 +58,27 @@ void NetworkProcess::platformInitializeNetworkProcess(const NetworkProcessCreati
 
 void NetworkProcess::platformTerminate()
 {
+    qDebug() << Q_FUNC_INFO;
 }
 
 void NetworkProcess::allowSpecificHTTPSCertificateForHost(const CertificateInfo&, const String&)
 {
+    qDebug() << Q_FUNC_INFO;
 }
 
 void NetworkProcess::clearCacheForAllOrigins(uint32_t)
 {
+    qDebug() << Q_FUNC_INFO;
 }
 
 void NetworkProcess::clearDiskCache(std::chrono::system_clock::time_point, std::function<void()>)
 {
+    qDebug() << Q_FUNC_INFO;
 }
 
 void NetworkProcess::platformSetCacheModel(CacheModel)
 {
+    qDebug() << Q_FUNC_INFO;
 }
 
 } // namespace WebKit

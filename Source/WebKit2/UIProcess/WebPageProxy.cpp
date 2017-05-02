@@ -925,6 +925,7 @@ bool WebPageProxy::maybeInitializeSandboxExtensionHandle(const URL& url, Sandbox
 
 RefPtr<API::Navigation> WebPageProxy::loadRequest(const ResourceRequest& request, ShouldOpenExternalURLsPolicy shouldOpenExternalURLsPolicy, API::Object* userData)
 {
+    qDebug()<< Q_FUNC_INFO << QUrl(request.url());
     if (m_isClosed)
         return nullptr;
 
@@ -941,6 +942,8 @@ RefPtr<API::Navigation> WebPageProxy::loadRequest(const ResourceRequest& request
     bool createdExtension = maybeInitializeSandboxExtensionHandle(request.url(), sandboxExtensionHandle);
     if (createdExtension)
         m_process->willAcquireUniversalFileReadSandboxExtension();
+    qDebug()<< Q_FUNC_INFO << 2 << QUrl(request.url());
+    fprintf(stderr, "%s: url=%s\n", __FUNCSIG__, request.url().string().utf8().data());
     m_process->send(Messages::WebPage::LoadRequest(navigation->navigationID(), request, sandboxExtensionHandle, (uint64_t)shouldOpenExternalURLsPolicy, UserData(process().transformObjectsToHandles(userData).get())), m_pageID);
     m_process->responsivenessTimer().start();
 
