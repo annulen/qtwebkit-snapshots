@@ -98,7 +98,6 @@ template<typename T>
 bool ChildProcessProxy::send(T&& message, uint64_t destinationID, unsigned messageSendFlags)
 {
     COMPILE_ASSERT(!T::isSync, AsyncMessageExpected);
-    fprintf(stderr, "%s\n", __FUNCSIG__);
 
     auto encoder = std::make_unique<IPC::MessageEncoder>(T::receiverName(), T::name(), destinationID);
     encoder->encode(message.arguments());

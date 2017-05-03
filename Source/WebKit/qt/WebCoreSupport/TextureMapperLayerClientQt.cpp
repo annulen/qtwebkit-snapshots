@@ -48,7 +48,6 @@ void TextureMapperLayerClientQt::syncRootLayer()
     m_rootGraphicsLayer->flushCompositingStateForThisLayerOnly(true/* viewportIsStable */);
 }
 
-// QTFIXME
 void TextureMapperLayerClientQt::markForSync(bool scheduleSync)
 {
     if (m_syncTimer.isActive())

@@ -64,7 +64,6 @@ NetworkConnectionToWebProcess::~NetworkConnectionToWebProcess()
 
 void NetworkConnectionToWebProcess::didCleanupResourceLoader(NetworkResourceLoader& loader)
 {
-    fprintf(stderr, "%s identifier=%lu\n", __FUNCSIG__, loader.identifier());
     ASSERT(m_networkResourceLoaders.get(loader.identifier()) == &loader);
 
     m_networkResourceLoaders.remove(loader.identifier());
@@ -117,7 +116,6 @@ void NetworkConnectionToWebProcess::didReceiveInvalidMessage(IPC::Connection&, I
 
 void NetworkConnectionToWebProcess::scheduleResourceLoad(const NetworkResourceLoadParameters& loadParameters)
 {
-    fprintf(stderr, "%s identifier=%lu\n", __FUNCSIG__, loadParameters.identifier);
     auto loader = NetworkResourceLoader::create(loadParameters, *this);
     m_networkResourceLoaders.add(loadParameters.identifier, loader.ptr());
     loader->start();
@@ -125,7 +123,6 @@ void NetworkConnectionToWebProcess::scheduleResourceLoad(const NetworkResourceLo
 
 void NetworkConnectionToWebProcess::performSynchronousLoad(const NetworkResourceLoadParameters& loadParameters, RefPtr<Messages::NetworkConnectionToWebProcess::PerformSynchronousLoad::DelayedReply>&& reply)
 {
-    fprintf(stderr, "%s identifier=%lu\n", __FUNCSIG__, loadParameters.identifier);
     auto loader = NetworkResourceLoader::create(loadParameters, *this, WTFMove(reply));
     m_networkResourceLoaders.add(loadParameters.identifier, loader.ptr());
     loader->start();
@@ -141,7 +138,6 @@ void NetworkConnectionToWebProcess::loadPing(const NetworkResourceLoadParameters
 
 void NetworkConnectionToWebProcess::removeLoadIdentifier(ResourceLoadIdentifier identifier)
 {
-    fprintf(stderr, "%s identifier=%lu\n", __FUNCSIG__, identifier);
     RefPtr<NetworkResourceLoader> loader = m_networkResourceLoaders.get(identifier);
 
     // It's possible we have no loader for this identifier if the NetworkProcess crashed and this was a respawned NetworkProcess.
@@ -188,27 +184,21 @@ void NetworkConnectionToWebProcess::startDownload(SessionID sessionID, DownloadI
 
 void NetworkConnectionToWebProcess::convertMainResourceLoadToDownload(SessionID sessionID, uint64_t mainResourceLoadIdentifier, DownloadID downloadID, const ResourceRequest& request, const ResourceResponse& response)
 {
-    fprintf(stderr, "NetworkConnectionToWebProcess::convertMainResourceLoadToDownload\n");
     auto& networkProcess = NetworkProcess::singleton();
     if (!mainResourceLoadIdentifier) {
-        fprintf(stderr, "NetworkConnectionToWebProcess::convertMainResourceLoadToDownload 1\n");
         networkProcess.downloadManager().startDownload(sessionID, downloadID, request);
         return;
     }
 
-
-    fprintf(stderr, "NetworkConnectionToWebProcess::convertMainResourceLoadToDownload mainResourceLoadIdentifier=%d\n", mainResourceLoadIdentifier);
     NetworkResourceLoader* loader = m_networkResourceLoaders.get(mainResourceLoadIdentifier);
     if (!loader) {
         // If we're trying to download a blob here loader can be null.
-        fprintf(stderr, "NetworkConnectionToWebProcess::convertMainResourceLoadToDownload 2\n");
         return;
     }
 
 #if USE(NETWORK_SESSION)
     loader->networkLoad()->convertTaskToDownload(downloadID);
 #else
-    fprintf(stderr, "NetworkConnectionToWebProcess::convertMainResourceLoadToDownload 3\n");
     networkProcess.downloadManager().convertHandleToDownload(downloadID, loader->networkLoad()->handle(), request, response);
 
     // Unblock the URL connection operation queue.

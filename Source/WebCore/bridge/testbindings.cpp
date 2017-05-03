@@ -33,7 +33,7 @@
 
 
 #define LOG(formatAndArgs...) { \
-    fprintf (stderr, "%s:  ", __FUNCSIG__); \
+    fprintf (stderr, "%s:  ", __PRETTY_FUNCTION__); \
     fprintf(stderr, formatAndArgs); \
 }
 

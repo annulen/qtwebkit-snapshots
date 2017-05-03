@@ -244,8 +244,6 @@
 #include <WebKitAdditions/WebPageIncludes.h>
 #endif
 
-#include <QDebug>
-
 using namespace JSC;
 using namespace WebCore;
 
@@ -1156,7 +1154,6 @@ void WebPage::loadURLInFrame(const String& url, uint64_t frameID)
 
 void WebPage::loadRequest(uint64_t navigationID, const ResourceRequest& request, const SandboxExtension::Handle& sandboxExtensionHandle, uint64_t shouldOpenExternalURLsPolicy, const UserData& userData)
 {
-    fprintf(stderr, "%s: url=%s\n", __FUNCSIG__, request.url().string().utf8().data());
     SendStopResponsivenessTimer stopper(this);
 
     m_pendingNavigationID = navigationID;
@@ -1672,8 +1669,6 @@ float WebPage::deviceScaleFactor() const
 
 void WebPage::setUseFixedLayout(bool fixed)
 {
-    qDebug() << Q_FUNC_INFO << fixed;
-
     // Do not overwrite current settings if initially setting it to false.
     if (m_useFixedLayout == fixed)
         return;

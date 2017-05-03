@@ -43,7 +43,6 @@ public:
     template<typename U> bool send(const U& message, uint64_t destinationID, unsigned messageSendFlags = 0)
     {
         static_assert(!U::isSync, "Message is sync!");
-        fprintf(stderr, "%s\n", __FUNCSIG__);
 
         auto encoder = std::make_unique<MessageEncoder>(U::receiverName(), U::name(), destinationID);
         encoder->encode(message.arguments());

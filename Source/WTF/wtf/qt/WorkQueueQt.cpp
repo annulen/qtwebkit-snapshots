@@ -112,8 +112,6 @@ void WorkQueue::dispatch(std::function<void()> function)
     ref();
     WorkQueue::WorkItemQt* itemQt = new WorkQueue::WorkItemQt(this, function);
     itemQt->moveToThread(m_workThread);
-
-    // Use functor connect?
     QMetaObject::invokeMethod(itemQt, "executeAndDelete", Qt::QueuedConnection);
 }
 

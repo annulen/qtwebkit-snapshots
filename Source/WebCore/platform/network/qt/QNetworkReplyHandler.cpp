@@ -515,13 +515,11 @@ void QNetworkReplyHandler::finish()
     }
 
     if (m_replyWrapper->wasRedirected()) {
-        qDebug() << Q_FUNC_INFO << "Was redirected to" << m_replyWrapper->redirectionTargetUrl();
         m_replyWrapper = nullptr;
         m_queue.push(&QNetworkReplyHandler::start);
         return;
     }
 
-    qDebug() << Q_FUNC_INFO << "Finish";
     if (!m_replyWrapper->reply()->error() || shouldIgnoreHttpError(m_replyWrapper->reply(), m_replyWrapper->responseContainsData()))
         client->didFinishLoading(m_resourceHandle, 0);
     else
@@ -770,7 +768,6 @@ FormDataIODevice* QNetworkReplyHandler::getIODevice(const ResourceRequest& reque
 
 QNetworkReply* QNetworkReplyHandler::sendNetworkRequest(QNetworkAccessManager* manager, const ResourceRequest& request)
 {
-    qDebug() << Q_FUNC_INFO << manager << request.url();
     if (m_loadType == SynchronousLoad)
         m_request.setAttribute(QNetworkRequest::SynchronousRequestAttribute, true);
 
