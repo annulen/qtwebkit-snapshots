@@ -84,7 +84,7 @@ void WorkQueue::performWorkOnRegisteredWorkThread()
         m_workItemQueueLock.unlock();
         for (auto& workItem : workItemQueue) {
             workItem->function()();
-            deref();
+            //deref();
         }
         m_workItemQueueLock.lock();
     }

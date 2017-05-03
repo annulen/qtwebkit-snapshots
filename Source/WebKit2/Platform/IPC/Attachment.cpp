@@ -33,6 +33,9 @@ namespace IPC {
 
 Attachment::Attachment()
     : m_type(Uninitialized)
+#if OS(WINDOWS)
+    , m_handle(0)
+#endif
 {
 }
 
