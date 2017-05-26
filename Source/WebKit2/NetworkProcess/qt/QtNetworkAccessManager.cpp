@@ -82,7 +82,7 @@ void QtNetworkAccessManager::onProxyAuthenticationRequired(const QNetworkProxy& 
              authenticator->setUser(username);
          if (!password.isEmpty())
              authenticator->setPassword(password);
-     }
+    }
 
 }
 

@@ -109,7 +109,7 @@ static void initializeProxy()
 class NetworkProcessMain final: public ChildProcessMainBase {
 public:
 
-    bool platformInitialize() override
+    bool platformInitialize() final
     {
         initializeProxy();
         return true;

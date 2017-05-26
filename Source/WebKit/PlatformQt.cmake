@@ -232,8 +232,8 @@ if (ENABLE_WEBKIT2)
     if (APPLE)
         set(WEBKIT2_LIBRARY -Wl,-force_load WebKit2)
     elseif (MSVC)
-        set(WEBKIT2_LIBRARY "-WHOLEARCHIVE:WebKit2")
-    elseif (UNIX)
+        set(WEBKIT2_LIBRARY "-WHOLEARCHIVE:WebKit2${CMAKE_DEBUG_POSTFIX}")
+    elseif (UNIX OR MINGW)
         set(WEBKIT2_LIBRARY -Wl,--whole-archive WebKit2 -Wl,--no-whole-archive)
     else ()
         message(WARNING "Unknown system, linking with WebKit2 may fail!")
@@ -244,13 +244,17 @@ endif ()
 list(APPEND WebKit_LIBRARIES
     PRIVATE
         ${WEBKIT2_LIBRARY}
+        ${Qt5Quick_LIBRARIES}
+        ${Qt5WebChannel_LIBRARIES}
+)
+
+list(APPEND WebKit_LIBRARIES
+    PRIVATE
         ${ICU_LIBRARIES}
         ${Qt5Positioning_LIBRARIES}
         ${X11_X11_LIB}
         ${X11_Xcomposite_LIB}
         ${X11_Xrender_LIB}
-        ${Qt5Quick_LIBRARIES}
-	${Qt5WebChannel_LIBRARIES}
     PUBLIC
         ${Qt5Core_LIBRARIES}
         ${Qt5Gui_LIBRARIES}
@@ -348,6 +352,12 @@ ecm_generate_headers(
         QWebSettings
     COMMON_HEADER
         QtWebKit
+    COMMON_HEADER_EXTRAS
+        <QtWebKit/QtWebKitDepends>
+        \"qwebkitglobal.h\"
+        \"qtwebkitversion.h\"
+    COMMON_HEADER_GUARD_NAME
+        QT_QTWEBKIT_MODULE_H
     RELATIVE
         qt/Api
     OUTPUT_DIR
@@ -599,6 +609,11 @@ ecm_generate_headers(
         QWebView
     COMMON_HEADER
         QtWebKitWidgets
+    COMMON_HEADER_EXTRAS
+        <QtWebKitWidgets/QtWebKitWidgetsDepends>
+        \"qtwebkitwidgetsversion.h\"
+    COMMON_HEADER_GUARD_NAME
+        QT_QTWEBKITWIDGETS_MODULE_H
     RELATIVE
         qt/WidgetApi
     OUTPUT_DIR
@@ -724,22 +739,6 @@ if (MSVC)
             win/Plugins/PaintHooks.asm
         )
     endif ()
-
-    # Make sure incremental linking is turned off, as it creates unacceptably long link times.
-    string(REPLACE "INCREMENTAL:YES" "INCREMENTAL:NO" replace_CMAKE_SHARED_LINKER_FLAGS ${CMAKE_SHARED_LINKER_FLAGS})
-    set(CMAKE_SHARED_LINKER_FLAGS "${replace_CMAKE_SHARED_LINKER_FLAGS} /INCREMENTAL:NO")
-    string(REPLACE "INCREMENTAL:YES" "INCREMENTAL:NO" replace_CMAKE_EXE_LINKER_FLAGS ${CMAKE_EXE_LINKER_FLAGS})
-    set(CMAKE_EXE_LINKER_FLAGS "${replace_CMAKE_EXE_LINKER_FLAGS} /INCREMENTAL:NO")
-
-    string(REPLACE "INCREMENTAL:YES" "INCREMENTAL:NO" replace_CMAKE_SHARED_LINKER_FLAGS_DEBUG ${CMAKE_SHARED_LINKER_FLAGS_DEBUG})
-    set(CMAKE_SHARED_LINKER_FLAGS_DEBUG "${replace_CMAKE_SHARED_LINKER_FLAGS_DEBUG} /INCREMENTAL:NO")
-    string(REPLACE "INCREMENTAL:YES" "INCREMENTAL:NO" replace_CMAKE_EXE_LINKER_FLAGS_DEBUG ${CMAKE_EXE_LINKER_FLAGS_DEBUG})
-    set(CMAKE_EXE_LINKER_FLAGS_DEBUG "${replace_CMAKE_EXE_LINKER_FLAGS_DEBUG} /INCREMENTAL:NO")
-
-    string(REPLACE "INCREMENTAL:YES" "INCREMENTAL:NO" replace_CMAKE_SHARED_LINKER_FLAGS_RELWITHDEBINFO ${CMAKE_SHARED_LINKER_FLAGS_RELWITHDEBINFO})
-    set(CMAKE_SHARED_LINKER_FLAGS_RELWITHDEBINFO "${replace_CMAKE_SHARED_LINKER_FLAGS_RELWITHDEBINFO} /INCREMENTAL:NO")
-    string(REPLACE "INCREMENTAL:YES" "INCREMENTAL:NO" replace_CMAKE_EXE_LINKER_FLAGS_RELWITHDEBINFO ${CMAKE_EXE_LINKER_FLAGS_RELWITHDEBINFO})
-    set(CMAKE_EXE_LINKER_FLAGS_RELWITHDEBINFO "${replace_CMAKE_EXE_LINKER_FLAGS_RELWITHDEBINFO} /INCREMENTAL:NO")
 
     list(APPEND WebKit_INCLUDE_DIRECTORIES
         ${DERIVED_SOURCES_WEBKIT_DIR}

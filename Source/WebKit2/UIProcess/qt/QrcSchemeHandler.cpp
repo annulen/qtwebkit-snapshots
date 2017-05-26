@@ -26,10 +26,10 @@
 #include "config.h"
 #include "QrcSchemeHandler.h"
 
+#include <QCoreApplication>
 #include <QFile>
 #include <QFileInfo>
 #include <QMimeDatabase>
-#include <QCoreApplication>
 #include <QNetworkReply>
 #include <WebCore/ResourceError.h>
 #include <WebCore/ResourceResponse.h>
@@ -66,7 +66,7 @@ static void sendError(WebURLSchemeHandlerTask& task)
 
 void QrcSchemeHandler::platformStartTask(WebPageProxy& page, WebURLSchemeHandlerTask& task)
 {
-    QString fileName = ':' + task.request().url().path();
+    QString fileName = ':' + QString(task.request().url().path());
     QByteArray fileData;
 
     {

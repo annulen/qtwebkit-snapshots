@@ -84,15 +84,16 @@ private:
     QQuickWebView* m_view;
 };
 
-PlatformWebView::PlatformWebView(WKPageConfigurationRef configuration, const TestOptions& options)
+PlatformWebView::PlatformWebView(WKContextRef contextRef, WKPageGroupRef pageGroupRef, WKPageRef /* relatedPage */, WKDictionaryRef options)
     : m_windowIsKey(true)
     , m_options(options)
     , m_modalEventLoop(0)
 {
-    m_usingFixedLayout = options.useFixedLayout;
+    WKRetainPtr<WKStringRef> useFixedLayoutKey(AdoptWK, WKStringCreateWithUTF8CString("UseFixedLayout"));
+    m_usingFixedLayout = options ? WKBooleanGetValue(static_cast<WKBooleanRef>(WKDictionaryGetItemForKey(options, useFixedLayoutKey.get()))) : false;
     QQuickWebViewExperimental::setFlickableViewportEnabled(m_usingFixedLayout);
 
-    m_view = new QQuickWebView(configuration);
+    m_view = new QQuickWebView(contextRef, pageGroupRef);
     m_view->setAllowAnyHTTPSCertificateForLocalHost(true);
     m_view->componentComplete();
 
@@ -170,10 +171,6 @@ void PlatformWebView::removeChromeInputField()
 {
 }
 
-void PlatformWebView::changeWindowScaleIfNeeded(float)
-{
-}
-
 void PlatformWebView::makeWebViewFirstResponder()
 {
 }
@@ -194,19 +191,14 @@ bool PlatformWebView::windowSnapshotEnabled()
     return result;
 }
 
-bool PlatformWebView::viewSupportsOptions(const TestOptions& options) const
+bool PlatformWebView::viewSupportsOptions(WKDictionaryRef options) const
 {
-    if (m_options.useFixedLayout != options.useFixedLayout)
-        return false;
+    WKRetainPtr<WKStringRef> useFixedLayoutKey(AdoptWK, WKStringCreateWithUTF8CString("UseFixedLayout"));
 
-    return true;
+    return m_usingFixedLayout == (options ? WKBooleanGetValue(static_cast<WKBooleanRef>(WKDictionaryGetItemForKey(options, useFixedLayoutKey.get()))) : false);
 }
 
 void PlatformWebView::didInitializeClients()
-{
-}
-
-void PlatformWebView::setNavigationGesturesEnabled(bool)
 {
 }
 

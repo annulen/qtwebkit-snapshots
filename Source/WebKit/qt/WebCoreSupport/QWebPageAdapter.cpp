@@ -285,7 +285,7 @@ void QWebPageAdapter::initializeWebCorePage()
 
     page->addLayoutMilestones(DidFirstVisuallyNonEmptyLayout);
 
-    settings = new QWebSettings(&page->settings());
+    settings = new QWebSettings(page);
 
 #if ENABLE(NOTIFICATIONS)
     WebCore::provideNotification(page, NotificationPresenterClientQt::notificationPresenter());
@@ -488,6 +488,11 @@ void QWebPageAdapter::adjustPointForClicking(QMouseEvent* ev)
 #else
     Q_UNUSED(ev);
 #endif
+}
+
+bool QWebPageAdapter::tryClosePage()
+{
+    return mainFrameAdapter().frame->loader().shouldClose();
 }
 
 void QWebPageAdapter::mouseMoveEvent(QMouseEvent* ev)
@@ -1375,6 +1380,11 @@ QWebPageAdapter::ViewportAttributes QWebPageAdapter::viewportAttributesForSize(c
 void QWebPageAdapter::setDevicePixelRatio(float devicePixelRatio)
 {
     page->setDeviceScaleFactor(devicePixelRatio);
+}
+
+float QWebPageAdapter::devicePixelRatio()
+{
+    return page->deviceScaleFactor();
 }
 
 bool QWebPageAdapter::isPlayingAudio() const

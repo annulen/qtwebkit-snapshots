@@ -29,9 +29,9 @@
 #include "NetworkProcessCreationParameters.h"
 #include "QtNetworkAccessManager.h"
 
+#include <QNetworkDiskCache>
 #include <WebCore/CertificateInfo.h>
 #include <WebCore/CookieJarQt.h>
-#include <QNetworkDiskCache>
 
 using namespace WebCore;
 

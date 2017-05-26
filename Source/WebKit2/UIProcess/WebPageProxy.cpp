@@ -523,6 +523,8 @@ WebPageProxy::WebPageProxy(PageClient& pageClient, WebProcessProxy& process, uin
 
 WebPageProxy::~WebPageProxy()
 {
+    // QtWebPageSGNode may be the last owner of WebPageProxy, but it is destroyed
+    // in the renderer thread which causes assertion failure when accessing globalPageMap
     ASSERT(!RunLoop::isMain() || m_process->webPage(m_pageID) != this);
 #if !ASSERT_DISABLED
     for (WebPageProxy* page : m_process->pages())
@@ -872,6 +874,7 @@ void WebPageProxy::close()
     resetState(ResetStateReason::PageInvalidated);
 
     m_loaderClient = std::make_unique<API::LoaderClient>();
+    m_navigationClient = nullptr;
     m_policyClient = std::make_unique<API::PolicyClient>();
     m_formClient = std::make_unique<API::FormClient>();
     m_uiClient = std::make_unique<API::UIClient>();

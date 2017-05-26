@@ -11,6 +11,12 @@ else ()
     set(WebKit2_LIBRARY_TYPE STATIC)
 endif ()
 
+add_definitions(-DBUILDING_WEBKIT)
+
+if (${JavaScriptCore_LIBRARY_TYPE} MATCHES STATIC)
+    add_definitions(-DSTATICALLY_LINKED_WITH_WTF -DSTATICALLY_LINKED_WITH_JavaScriptCore)
+endif ()
+
 #set(WebKit2_USE_PREFIX_HEADER ON)
 
 list(APPEND WebKit2_INCLUDE_DIRECTORIES
@@ -59,8 +65,8 @@ list(APPEND WebKit2_SOURCES
 
     NetworkProcess/qt/NetworkProcessMainQt.cpp
     NetworkProcess/qt/NetworkProcessQt.cpp
-    NetworkProcess/qt/RemoteNetworkingContextQt.cpp
     NetworkProcess/qt/QtNetworkAccessManager.cpp
+    NetworkProcess/qt/RemoteNetworkingContextQt.cpp
 
     Platform/qt/LoggingQt.cpp
     Platform/qt/ModuleQt.cpp
@@ -98,7 +104,6 @@ list(APPEND WebKit2_SOURCES
 
     UIProcess/BackingStore.cpp
     UIProcess/DefaultUndoController.cpp
-    UIProcess/DrawingAreaProxyImpl.cpp
     UIProcess/LegacySessionStateCodingNone.cpp
 
     UIProcess/API/C/qt/WKIconDatabaseQt.cpp
@@ -113,6 +118,7 @@ list(APPEND WebKit2_SOURCES
     UIProcess/API/qt/qquickwebpage.cpp
     UIProcess/API/qt/qquickwebview.cpp
     UIProcess/API/qt/qtwebsecurityorigin.cpp
+    UIProcess/API/qt/qwebchannelwebkittransport.cpp
     UIProcess/API/qt/qwebdownloaditem.cpp
     UIProcess/API/qt/qwebdownloaditem_p.h
     UIProcess/API/qt/qwebdownloaditem_p_p.h
@@ -210,7 +216,7 @@ qt5_add_resources(WebKit2_SOURCES
     WebKit2.qrc
 )
 
-if (APPLE)
+if (USE_MACH_PORTS)
     list(APPEND WebKit2_INCLUDE_DIRECTORIES
         "${WEBKIT2_DIR}/Platform/IPC/mac"
         "${WEBKIT2_DIR}/Platform/mac"
@@ -221,8 +227,12 @@ if (APPLE)
         Platform/mac/MachUtilities.cpp
         Platform/mac/SharedMemoryMac.cpp
     )
+    list(APPEND WebKit2_LIBRARIES
+        objc
+    )
 elseif (WIN32)
     list(APPEND WebKit2_SOURCES
+        Platform/IPC/win/AttachmentWin.cpp
         Platform/IPC/win/ConnectionWin.cpp
 
         Platform/win/SharedMemoryWin.cpp
@@ -244,12 +254,6 @@ if (ENABLE_NETSCAPE_PLUGIN_API)
     # Enabling PLUGIN_PROCESS without building PluginProcess executable
     # fixes things
     add_definitions(-DENABLE_PLUGIN_PROCESS=1)
-endif ()
-
-if (ENABLE_QT_WEBCHANNEL)
-    list(APPEND WebKit2_SOURCES
-        UIProcess/API/qt/qwebchannelwebkittransport.cpp
-    )
 endif ()
 
 list(APPEND WebKit2_SYSTEM_INCLUDE_DIRECTORIES

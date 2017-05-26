@@ -64,9 +64,13 @@ static void dumpImage(const QImage& image)
     fflush(stdout);
 }
 
-void TestInvocation::dumpPixelsAndCompareWithExpected(WKImageRef imageRef, WKArrayRef repaintRects, SnapshotResultType)
+void TestInvocation::dumpPixelsAndCompareWithExpected(WKImageRef imageRef, WKArrayRef repaintRects)
 {
-    QImage image = WKImageCreateQImage(imageRef);
+    QImage image;
+    if (PlatformWebView::windowSnapshotEnabled()) {
+        image = WKImageCreateQImage(TestController::shared().mainWebView()->windowSnapshotImage().get());
+    } else
+        image = WKImageCreateQImage(imageRef);
 
     if (repaintRects) {
         QImage mask(image.size(), image.format());

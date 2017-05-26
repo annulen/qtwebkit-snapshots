@@ -176,6 +176,7 @@ protected Q_SLOTS:
 #endif
 
     void clearMemoryCaches();
+    void clearPageSelection();
 
 public Q_SLOTS:
     LauncherWindow* newWindow();
@@ -195,6 +196,8 @@ private:
     bool isGraphicsBased() const;
 
 private:
+    void closeEvent(QCloseEvent*) final;
+
     static QVector<int> m_zoomLevels;
     int m_currentZoom;
 

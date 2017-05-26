@@ -315,6 +315,7 @@ public:
 
     void adjustPointForClicking(QMouseEvent*);
 
+    bool tryClosePage();
     void mouseMoveEvent(QMouseEvent*);
     void mousePressEvent(QMouseEvent*);
     void mouseDoubleClickEvent(QMouseEvent*);
@@ -386,6 +387,7 @@ public:
 
     ViewportAttributes viewportAttributesForSize(const QSize& availableSize, const QSize& deviceSize) const;
     void setDevicePixelRatio(float devicePixelRatio);
+    float devicePixelRatio();
 
     bool isPlayingAudio() const;
 

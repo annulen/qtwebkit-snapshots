@@ -178,11 +178,6 @@ void TestController::platformInitializeContext()
 {
 }
 
-void TestController::setHidden(bool hidden)
-{
-    qFatal("Implement TestController::setHidden!");
-}
-
 void TestController::runModal(PlatformWebView* view)
 {
     singleton().m_runLoop->runModal(view);
@@ -191,18 +186,6 @@ void TestController::runModal(PlatformWebView* view)
 const char* TestController::platformLibraryPathForTesting()
 {
     return 0;
-}
-
-void TestController::platformConfigureViewForTest(const TestInvocation&)
-{
-}
-
-void TestController::platformResetPreferencesToConsistentValues()
-{
-}
-
-void TestController::updatePlatformSpecificTestOptionsForTest(TestOptions&, const std::string&) const
-{
 }
 
 } // namespace WTR

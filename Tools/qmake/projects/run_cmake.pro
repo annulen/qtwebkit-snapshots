@@ -6,14 +6,6 @@ TEMPLATE = aux
 
 qtConfig(debug_and_release): CONFIG += debug_and_release build_all
 
-msvc:!contains(QMAKE_HOST.arch, x86_64) {
-    debug_and_release {
-        warning("Skipping debug build of QtWebKit because it requires a 64-bit toolchain")
-        CONFIG -= debug_and_release debug
-        CONFIG += release
-    }
-}
-
 CONFIG(debug, debug|release) {
     configuration = Debug
 } else {
@@ -28,8 +20,14 @@ build_pass|!debug_and_release {
         PORT=Qt \
         CMAKE_BUILD_TYPE=$$configuration \
         CMAKE_TOOLCHAIN_FILE=$$toolchain_file \
-        CMAKE_PREFIX_PATH=\"$$[QT_INSTALL_PREFIX];$$ROOT_QT_BUILD_DIR/qtbase;$$ROOT_QT_BUILD_DIR/qtlocation;$$ROOT_QT_BUILD_DIR/qtsensors\" \
         USE_LIBHYPHEN=OFF
+
+    !isEmpty(_QMAKE_SUPER_CACHE_) {
+        CMAKE_PREFIX_PATH=\"$$ROOT_QT_BUILD_DIR/qtbase;$$ROOT_QT_BUILD_DIR/qtlocation;$$ROOT_QT_BUILD_DIR/qtsensors;$$ROOT_QT_BUILD_DIR/qtdeclarative;$$ROOT_QT_BUILD_DIR/qtwebchannel\"
+    } else {
+        CMAKE_PREFIX_PATH=\"$$[QT_INSTALL_PREFIX]\"
+    }
+    CMAKE_CONFIG += CMAKE_PREFIX_PATH=$$CMAKE_PREFIX_PATH
 
     static: CMAKE_CONFIG += USE_THIN_ARCHIVES=OFF
 
@@ -64,6 +62,10 @@ build_pass|!debug_and_release {
         CMAKE_CONFIG += QT_CONAN_DIR=$$ROOT_BUILD_DIR
     }
 
+    msvc:!contains(QMAKE_HOST.arch, x86_64) {
+        CMAKE_CONFIG += USE_MINIMAL_DEBUG_INFO_MSVC=ON
+    }
+
     macos {
         # Reuse the cached sdk version value from mac/sdk.prf if available
         # otherwise query for it.
@@ -73,6 +75,11 @@ build_pass|!debug_and_release {
         }
         exists($$QMAKE_MAC_SDK_PATH): CMAKE_CONFIG += CMAKE_OSX_SYSROOT=$$QMAKE_MAC_SDK_PATH
         !isEmpty(QMAKE_MACOSX_DEPLOYMENT_TARGET): CMAKE_CONFIG += CMAKE_OSX_DEPLOYMENT_TARGET=$$QMAKE_MACOSX_DEPLOYMENT_TARGET
+
+        # Hack: install frameworks in debug_and_release in separate prefixes
+        debug_and_release:build_all:CONFIG(debug, debug|release) {
+            CMAKE_CONFIG += CMAKE_INSTALL_PREFIX=\"$$[QT_INSTALL_PREFIX]/debug\"
+        }
     }
 
     equals(QMAKE_HOST.os, Windows) {
@@ -112,17 +119,13 @@ build_pass|!debug_and_release {
     QMAKE_EXTRA_TARGETS += default_target
 
     # When debug and release are built at the same time, don't install data files twice
-    debug_and_release:build_all:CONFIG(debug, debug|release) {
-        cmake_install_args = "-DCOMPONENT=Code"
-        # TODO: Fix macOS frameworks installation in debug_and_release
-        macos: destdir_suffix = "/debug"
-    }
+    debug_and_release:build_all:CONFIG(debug, debug|release): cmake_install_args = "-DCOMPONENT=Code"
 
     install_impl_target.target = install_impl
     install_impl_target.commands = cd $$cmake_build_dir && cmake $$cmake_install_args -P cmake_install.cmake
     QMAKE_EXTRA_TARGETS += install_impl_target
 
     install_target.target = install
-    install_target.commands = $(MAKE) -f $(MAKEFILE) install_impl $$make_args DESTDIR=$(INSTALL_ROOT)$$destdir_suffix
+    install_target.commands = $(MAKE) -f $(MAKEFILE) install_impl $$make_args DESTDIR=$(INSTALL_ROOT)
     QMAKE_EXTRA_TARGETS += install_target
 }

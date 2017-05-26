@@ -148,10 +148,12 @@ void CoordinatedGraphicsScene::paintToGraphicsContext(PlatformGraphicsContext* p
     m_textureMapper->setGraphicsContext(0);
 }
 
+#if PLATFORM(QT)
 void CoordinatedGraphicsScene::setScrollPosition(const FloatPoint& scrollPosition)
 {
     m_scrollPosition = scrollPosition;
 }
+#endif
 
 void CoordinatedGraphicsScene::updateViewport()
 {

@@ -1,6 +1,5 @@
 include(FeatureSummary)
 include(ECMPackageConfigHelpers)
-include(ECMQueryQmake)
 
 set(ECM_MODULE_DIR ${CMAKE_MODULE_PATH})
 
@@ -21,6 +20,12 @@ if (QT_CONAN_DIR)
             COMMAND conan imports -f \"${QT_CONAN_DIR}/conanfile.txt\" --dest \${_conan_imports_dest}
             WORKING_DIRECTORY \"${QT_CONAN_DIR}\"
         )
+
+        set(_conan_imports_manifest \"\${_conan_imports_dest}/conan_imports_manifest.txt\")
+        if (EXISTS \${_conan_imports_manifest})
+            file(REMOVE \${_conan_imports_manifest})
+            message(\"Removed conan install manifest: \${_conan_imports_manifest}\")
+        endif ()
     ")
 endif ()
 
@@ -57,6 +62,15 @@ set(PROJECT_VERSION_STRING "${PROJECT_VERSION}")
 set(CMAKE_MACOSX_RPATH ON)
 
 add_definitions(-DBUILDING_QT__=1)
+add_definitions(-DQT_NO_EXCEPTIONS)
+add_definitions(-DQT_USE_QSTRINGBUILDER)
+add_definitions(-DQT_NO_CAST_TO_ASCII -DQT_ASCII_CAST_WARNINGS)
+add_definitions(-DQT_DEPRECATED_WARNINGS -DQT_DISABLE_DEPRECATED_BEFORE=0x050000)
+
+# We use -fno-rtti with GCC and Clang, see OptionsCommon.cmake
+if (COMPILER_IS_GCC_OR_CLANG)
+    add_definitions(-DQT_NO_DYNAMIC_CAST)
+endif ()
 
 if (WIN32)
     if (${CMAKE_BUILD_TYPE} MATCHES "Debug")
@@ -78,12 +92,10 @@ if (WIN32 OR APPLE)
     set(USE_LIBHYPHEN_DEFAULT OFF)
     set(USE_GSTREAMER_DEFAULT OFF)
     set(USE_QT_MULTIMEDIA_DEFAULT ON)
-    set(ENABLE_WEBKIT2_DEFAULT OFF)
 else ()
     set(USE_LIBHYPHEN_DEFAULT ON)
     set(USE_GSTREAMER_DEFAULT ON)
     set(USE_QT_MULTIMEDIA_DEFAULT OFF)
-    set(ENABLE_WEBKIT2_DEFAULT ON)
 endif ()
 
 if (CMAKE_SYSTEM_NAME MATCHES "Linux")
@@ -126,7 +138,7 @@ WEBKIT_OPTION_DEFINE(ENABLE_OPENGL "Whether to use OpenGL." PUBLIC ON)
 WEBKIT_OPTION_DEFINE(ENABLE_PRINT_SUPPORT "Enable support for printing web pages" PUBLIC ON)
 WEBKIT_OPTION_DEFINE(ENABLE_QT_GESTURE_EVENTS "Enable support for gesture events (required for mouse in WK2)" PUBLIC ON)
 WEBKIT_OPTION_DEFINE(ENABLE_QT_WEBCHANNEL "Enable support for Qt WebChannel" PUBLIC ON)
-WEBKIT_OPTION_DEFINE(ENABLE_WEBKIT2 "Enable WebKit2 (QML API)" PUBLIC ${ENABLE_WEBKIT2_DEFAULT})
+WEBKIT_OPTION_DEFINE(ENABLE_WEBKIT2 "Enable WebKit2 (QML API)" PUBLIC ON)
 WEBKIT_OPTION_DEFINE(ENABLE_X11_TARGET "Whether to enable support for the X11 windowing target." PUBLIC ${ENABLE_X11_TARGET_DEFAULT})
 
 option(GENERATE_DOCUMENTATION "Generate HTML and QCH documentation" OFF)
@@ -294,8 +306,13 @@ if (MSVC)
 endif ()
 
 if (DEFINED ENV{SQLITE3SRCDIR})
-    get_filename_component(SQLITE_INCLUDE_DIR $ENV{SQLITE3SRCDIR} ABSOLUTE)
-    set(SQLITE_SOURCE_FILE ${SQLITE_INCLUDE_DIR}/sqlite3.c)
+    get_filename_component(SQLITE3SRC_ABS_DIR $ENV{SQLITE3SRCDIR} ABSOLUTE)
+    set(SQLITE3_SOURCE_DIR ${SQLITE3SRC_ABS_DIR} CACHE PATH "Path to SQLite sources to use instead of system library" FORCE)
+endif ()
+
+if (SQLITE3_SOURCE_DIR)
+    set(SQLITE_INCLUDE_DIR ${SQLITE3_SOURCE_DIR})
+    set(SQLITE_SOURCE_FILE ${SQLITE3_SOURCE_DIR}/sqlite3.c)
     if (NOT EXISTS ${SQLITE_SOURCE_FILE})
         message(FATAL_ERROR "${SQLITE_SOURCE_FILE} not found.")
     endif ()
@@ -414,11 +431,14 @@ if (ENABLE_WEBKIT2)
     )
     SET_AND_EXPOSE_TO_BUILD(USE_COORDINATED_GRAPHICS TRUE)
     SET_AND_EXPOSE_TO_BUILD(USE_COORDINATED_GRAPHICS_MULTIPROCESS TRUE)
+endif ()
 
-    if (ENABLE_OPENGL AND ENABLE_X11_TARGET AND Qt5Gui_OPENGL_IMPLEMENTATION STREQUAL GL)
-        SET_AND_EXPOSE_TO_BUILD(USE_GLX 1)
-        SET_AND_EXPOSE_TO_BUILD(USE_GRAPHICS_SURFACE 1)
-    endif ()
+# Mach ports and Unix sockets are currently used by WK2, but their USE() values
+# affect building WorkQueue
+if (APPLE)
+    SET_AND_EXPOSE_TO_BUILD(USE_MACH_PORTS 1) # Qt-specific
+elseif (UNIX)
+    SET_AND_EXPOSE_TO_BUILD(USE_UNIX_DOMAIN_SOCKETS 1)
 endif ()
 
 if (ENABLE_QT_WEBCHANNEL)
@@ -476,7 +496,7 @@ set(CMAKE_AUTOMOC ON)
 if (COMPILER_IS_GCC_OR_CLANG AND UNIX)
     if (NOT APPLE)
         set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -ffunction-sections -fdata-sections")
-        set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -ffunction-sections -fdata-sections -fno-rtti")
+        set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -ffunction-sections -fdata-sections")
         set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "${CMAKE_SHARED_LINKER_FLAGS_RELEASE} -Wl,--gc-sections")
     endif ()
 
@@ -527,12 +547,10 @@ endif ()
 
 if (ENABLE_X11_TARGET)
     find_package(X11 REQUIRED)
-    if (GRAPHICS_SURFACE)
-        if (NOT X11_Xcomposite_FOUND)
-            message(FATAL_ERROR "libXcomposite is required for GRAPHICS_SURFACE on X11")
-        elseif (NOT X11_Xrender_FOUND)
-            message(FATAL_ERROR "libXrender is required for GRAPHICS_SURFACE on X11")
-        endif ()
+    if (NOT X11_Xcomposite_FOUND)
+        message(FATAL_ERROR "libXcomposite is required for ENABLE_X11_TARGET")
+    elseif (NOT X11_Xrender_FOUND)
+        message(FATAL_ERROR "libXrender is required for ENABLE_X11_TARGET")
     endif ()
 endif ()
 
@@ -686,6 +704,22 @@ if (MSVC)
     set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} /ignore:4049 /ignore:4217")
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /ignore:4049 /ignore:4217")
 
+    # Make sure incremental linking is turned off, as it creates unacceptably long link times.
+    string(REPLACE "INCREMENTAL:YES" "INCREMENTAL:NO" replace_CMAKE_SHARED_LINKER_FLAGS ${CMAKE_SHARED_LINKER_FLAGS})
+    set(CMAKE_SHARED_LINKER_FLAGS "${replace_CMAKE_SHARED_LINKER_FLAGS} /INCREMENTAL:NO")
+    string(REPLACE "INCREMENTAL:YES" "INCREMENTAL:NO" replace_CMAKE_EXE_LINKER_FLAGS ${CMAKE_EXE_LINKER_FLAGS})
+    set(CMAKE_EXE_LINKER_FLAGS "${replace_CMAKE_EXE_LINKER_FLAGS} /INCREMENTAL:NO")
+
+    string(REPLACE "INCREMENTAL:YES" "INCREMENTAL:NO" replace_CMAKE_SHARED_LINKER_FLAGS_DEBUG ${CMAKE_SHARED_LINKER_FLAGS_DEBUG})
+    set(CMAKE_SHARED_LINKER_FLAGS_DEBUG "${replace_CMAKE_SHARED_LINKER_FLAGS_DEBUG} /INCREMENTAL:NO")
+    string(REPLACE "INCREMENTAL:YES" "INCREMENTAL:NO" replace_CMAKE_EXE_LINKER_FLAGS_DEBUG ${CMAKE_EXE_LINKER_FLAGS_DEBUG})
+    set(CMAKE_EXE_LINKER_FLAGS_DEBUG "${replace_CMAKE_EXE_LINKER_FLAGS_DEBUG} /INCREMENTAL:NO")
+
+    string(REPLACE "INCREMENTAL:YES" "INCREMENTAL:NO" replace_CMAKE_SHARED_LINKER_FLAGS_RELWITHDEBINFO ${CMAKE_SHARED_LINKER_FLAGS_RELWITHDEBINFO})
+    set(CMAKE_SHARED_LINKER_FLAGS_RELWITHDEBINFO "${replace_CMAKE_SHARED_LINKER_FLAGS_RELWITHDEBINFO} /INCREMENTAL:NO")
+    string(REPLACE "INCREMENTAL:YES" "INCREMENTAL:NO" replace_CMAKE_EXE_LINKER_FLAGS_RELWITHDEBINFO ${CMAKE_EXE_LINKER_FLAGS_RELWITHDEBINFO})
+    set(CMAKE_EXE_LINKER_FLAGS_RELWITHDEBINFO "${replace_CMAKE_EXE_LINKER_FLAGS_RELWITHDEBINFO} /INCREMENTAL:NO")
+
     if (${CMAKE_BUILD_TYPE} MATCHES "Debug")
         set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} /OPT:NOREF /OPT:NOICF")
         set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /OPT:NOREF /OPT:NOICF")
@@ -695,11 +729,9 @@ if (MSVC)
         #set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} /VERBOSE /VERBOSE:INCR /TIME")
         #set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /VERBOSE /VERBOSE:INCR /TIME")
 
-        # enable fast link for >= MSVC2015
-        if ((MSVC_VERSION GREATER 1900) OR (MSVC_VERSION EQUAL 1900))
-            set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} /DEBUG:FASTLINK")
-            set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /DEBUG:FASTLINK")
-        endif ()
+        # enable fast link
+        set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} /DEBUG:FASTLINK")
+        set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /DEBUG:FASTLINK")
     elseif (${CMAKE_BUILD_TYPE} MATCHES "Release")
         add_compile_options(/Oy-)
     endif ()
@@ -742,6 +774,9 @@ endif ()
 set_package_properties(Ruby PROPERTIES TYPE REQUIRED)
 set_package_properties(Qt5PrintSupport PROPERTIES PURPOSE "Required for ENABLE_PRINT_SUPPORT=ON")
 feature_summary(WHAT ALL FATAL_ON_MISSING_REQUIRED_PACKAGES)
+
+
+include(ECMQueryQmake)
 
 query_qmake(qt_install_prefix_dir QT_INSTALL_PREFIX)
 if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)

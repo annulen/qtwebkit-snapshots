@@ -36,7 +36,7 @@ class ArgumentDecoder;
 class ArgumentEncoder;
 }
 
-#if !PLATFORM(QT) // Qt provides conflicting declaration of NSData
+#if PLATFORM(COCOA)
 OBJC_CLASS NSData;
 #endif
 

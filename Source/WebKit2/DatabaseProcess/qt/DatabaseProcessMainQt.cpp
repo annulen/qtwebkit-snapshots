@@ -28,8 +28,8 @@
 
 #if ENABLE(DATABASE_PROCESS)
 
-#include <QCoreApplication>
 #include "ChildProcessMain.h"
+#include <QCoreApplication>
 
 using namespace WebCore;
 

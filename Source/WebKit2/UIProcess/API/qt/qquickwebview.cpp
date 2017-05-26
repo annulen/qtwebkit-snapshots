@@ -28,7 +28,6 @@
 #include "CoordinatedGraphicsScene.h"
 #include "CoordinatedLayerTreeHostProxy.h"
 #include "DownloadProxy.h"
-#include "DrawingAreaProxyImpl.h"
 #include "PageViewportControllerClientQt.h"
 #include "QrcSchemeHandler.h"
 #include "QtDialogRunner.h"
@@ -351,7 +350,7 @@ void QQuickWebViewPrivate::initialize(WKPageConfigurationRef configurationRef)
         context = QtWebContext::defaultContext();
     }
 
-    webPageProxy = toImpl(context->context())->createWebPage(pageClient,toImpl(pageConfiguration.get())->copy());
+    webPageProxy = toImpl(context->context())->createWebPage(pageClient, toImpl(pageConfiguration.get())->copy());
     webPage = toAPI(webPageProxy.get());
     pageToView()->insert(webPage.get(), this);
 
@@ -407,6 +406,7 @@ void QQuickWebViewPrivate::initialize(WKPageConfigurationRef configurationRef)
     preferences.setCompositingBordersVisible(showDebugVisuals);
     preferences.setCompositingRepaintCountersVisible(showDebugVisuals);
     preferences.setFrameFlatteningEnabled(true);
+    preferences.setMediaSourceEnabled(false);
     preferences.setWebGLEnabled(true);
     preferences.setForceCompositingMode(true);
 

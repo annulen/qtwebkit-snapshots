@@ -73,8 +73,6 @@ list(APPEND WebCore_SOURCES
     platform/graphics/PlatformDisplay.cpp
     platform/graphics/WOFFFileFormat.cpp
 
-    platform/graphics/surfaces/GraphicsSurface.cpp
-
     platform/graphics/texmap/BitmapTextureImageBuffer.cpp
     platform/graphics/texmap/TextureMapperImageBuffer.cpp
 
@@ -168,7 +166,7 @@ if (COMPILER_IS_GCC_OR_CLANG)
     set_source_files_properties(
         platform/graphics/qt/ImageBufferDataQt.cpp
     PROPERTIES
-        COMPILE_FLAGS -frtti
+        COMPILE_FLAGS "-frtti -UQT_NO_DYNAMIC_CAST"
     )
 endif ()
 
@@ -195,7 +193,7 @@ endif ()
 
 if (ENABLE_NETSCAPE_PLUGIN_API)
     if (WIN32)
-        set(WebCore_FORWARDING_HEADERS_FILES
+        list(APPEND WebCore_FORWARDING_HEADERS_FILES
             platform/graphics/win/LocalWindowsContext.h
 
             platform/win/BitmapInfo.h
@@ -212,8 +210,8 @@ if (ENABLE_NETSCAPE_PLUGIN_API)
             version
         )
     elseif (PLUGIN_BACKEND_XLIB)
-        set(WebCore_FORWARDING_HEADERS_FILES
-            plugins/qt/QtX11ImageConversion.h
+        list(APPEND WebCore_FORWARDING_HEADERS_FILES
+           plugins/qt/QtX11ImageConversion.h
         )
         list(APPEND WebCore_SOURCES
             plugins/qt/QtX11ImageConversion.cpp
@@ -266,8 +264,6 @@ list(APPEND WebCore_LIBRARIES
     ${Qt5Sensors_LIBRARIES}
     ${SQLITE_LIBRARIES}
     ${X11_X11_LIB}
-    ${X11_Xcomposite_LIB}
-    ${X11_Xrender_LIB}
     ${ZLIB_LIBRARIES}
 )
 
@@ -289,17 +285,16 @@ if (ENABLE_WEBKIT2)
     list(APPEND WebCore_SOURCES
         page/qt/GestureTapHighlighter.cpp
     )
-endif ()
+    if (USE_MACH_PORTS)
+        list(APPEND WebCore_FORWARDING_HEADERS_FILES
+            platform/cocoa/MachSendRight.h
 
-if (USE_GRAPHICS_SURFACE AND USE_GLX)
-    list(APPEND WebCore_SOURCES
-        platform/graphics/surfaces/glx/X11Helper.cpp
-
-        platform/graphics/surfaces/glx/GraphicsSurfaceGLX.cpp
-    )
-    list(APPEND WebCore_LIBRARIES
-        ${Qt5Gui_OPENGL_LIBRARIES}
-    )
+            platform/spi/cocoa/MachVMSPI.h
+        )
+        list(APPEND WebCore_SOURCES
+            platform/cocoa/MachSendRight.cpp
+        )
+    endif ()
 endif ()
 
 if (ENABLE_OPENGL)
@@ -428,36 +423,6 @@ if (WIN32)
 
     list(APPEND WebCore_SOURCES
         platform/win/SystemInfo.cpp
-    )
-endif ()
-
-if (MSVC)
-    list(APPEND WebCore_INCLUDE_DIRECTORIES
-        "${CMAKE_BINARY_DIR}/../include/private"
-        "${CMAKE_BINARY_DIR}/../include/private/JavaScriptCore"
-        "${DERIVED_SOURCES_DIR}/ForwardingHeaders/ANGLE"
-        "${DERIVED_SOURCES_DIR}/ForwardingHeaders/ANGLE/include/KHR"
-        "${DERIVED_SOURCES_DIR}/ForwardingHeaders/JavaScriptCore"
-        "${DERIVED_SOURCES_DIR}/ForwardingHeaders/JavaScriptCore/ForwardingHeaders"
-        "${DERIVED_SOURCES_DIR}/ForwardingHeaders/JavaScriptCore/API"
-        "${DERIVED_SOURCES_DIR}/ForwardingHeaders/JavaScriptCore/assembler"
-        "${DERIVED_SOURCES_DIR}/ForwardingHeaders/JavaScriptCore/builtins"
-        "${DERIVED_SOURCES_DIR}/ForwardingHeaders/JavaScriptCore/bytecode"
-        "${DERIVED_SOURCES_DIR}/ForwardingHeaders/JavaScriptCore/bytecompiler"
-        "${DERIVED_SOURCES_DIR}/ForwardingHeaders/JavaScriptCore/dfg"
-        "${DERIVED_SOURCES_DIR}/ForwardingHeaders/JavaScriptCore/disassembler"
-        "${DERIVED_SOURCES_DIR}/ForwardingHeaders/JavaScriptCore/heap"
-        "${DERIVED_SOURCES_DIR}/ForwardingHeaders/JavaScriptCore/debugger"
-        "${DERIVED_SOURCES_DIR}/ForwardingHeaders/JavaScriptCore/interpreter"
-        "${DERIVED_SOURCES_DIR}/ForwardingHeaders/JavaScriptCore/jit"
-        "${DERIVED_SOURCES_DIR}/ForwardingHeaders/JavaScriptCore/llint"
-        "${DERIVED_SOURCES_DIR}/ForwardingHeaders/JavaScriptCore/parser"
-        "${DERIVED_SOURCES_DIR}/ForwardingHeaders/JavaScriptCore/profiler"
-        "${DERIVED_SOURCES_DIR}/ForwardingHeaders/JavaScriptCore/runtime"
-        "${DERIVED_SOURCES_DIR}/ForwardingHeaders/JavaScriptCore/yarr"
-        "${DERIVED_SOURCES_DIR}/ForwardingHeaders/WTF"
-        "${WEBCORE_DIR}/ForwardingHeaders"
-        "${WEBCORE_DIR}/platform/win"
     )
 endif ()
 

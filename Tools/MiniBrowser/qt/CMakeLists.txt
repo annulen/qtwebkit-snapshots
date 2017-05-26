@@ -32,9 +32,9 @@ set(QML_IMPORT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/qml ${CMAKE_BINARY_DIR}/imports
 
 set(MiniBrowser_SOURCES
     BrowserWindow.cpp
-    main.cpp
     MiniBrowserApplication.cpp
     UrlLoader.cpp
+    main.cpp
     utils.cpp
     ${MiniBrowser_QML_SOURCES}
 )

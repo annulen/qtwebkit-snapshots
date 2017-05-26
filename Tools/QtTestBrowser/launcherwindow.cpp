@@ -262,6 +262,7 @@ void LauncherWindow::createChrome()
     editMenu->addAction(page()->action(QWebPage::Paste));
     editMenu->addSeparator();
     editMenu->addAction(page()->action(QWebPage::SelectAll));
+    editMenu->addAction("Unselect", this, SLOT(clearPageSelection()), QKeySequence::Deselect);
     editMenu->addSeparator();
 #ifndef QT_NO_LINEEDIT
     editMenu->addAction("&Find", this, SLOT(showFindBar()), QKeySequence(Qt::CTRL | Qt::Key_F));
@@ -590,6 +591,16 @@ void LauncherWindow::createChrome()
 bool LauncherWindow::isGraphicsBased() const
 {
     return bool(qobject_cast<QGraphicsView*>(m_view));
+}
+
+void LauncherWindow::closeEvent(QCloseEvent* e)
+{
+    e->ignore();
+    auto c = connect(page(), &QWebPage::windowCloseRequested, this, [e]() {
+        e->accept();
+    });
+    page()->triggerAction(QWebPage::RequestClose);
+    disconnect(c);
 }
 
 void LauncherWindow::sendTouchEvent()
@@ -1166,6 +1177,11 @@ void LauncherWindow::clearMemoryCaches()
 {
     QWebSettings::clearMemoryCaches();
     qDebug() << "Memory caches were cleared";
+}
+
+void LauncherWindow::clearPageSelection()
+{
+    page()->triggerAction(QWebPage::Unselect);
 }
 
 void LauncherWindow::updateFPS(int fps)

@@ -34,7 +34,7 @@ public:
     static Ref<QrcSchemeHandler> create();
 
 private:
-    QrcSchemeHandler() {};
+    QrcSchemeHandler() = default;
 
     void platformStartTask(WebPageProxy&, WebURLSchemeHandlerTask&) final;
     void platformStopTask(WebPageProxy&, WebURLSchemeHandlerTask&) final;

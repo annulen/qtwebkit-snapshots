@@ -26,7 +26,6 @@
 #include "config.h"
 #include "EventSenderProxy.h"
 
-#include "NotImplemented.h"
 #include "PlatformWebView.h"
 #include "TestController.h"
 #include <QApplication>
@@ -304,25 +303,11 @@ void EventSenderProxy::mouseMoveTo(double x, double y)
 void EventSenderProxy::mouseScrollBy(int, int)
 {
     // FIXME: Implement this.
-    notImplemented();
 }
 
 void EventSenderProxy::continuousMouseScrollBy(int, int, bool)
 {
     // FIXME: Implement this.
-    notImplemented();
-}
-
-void EventSenderProxy::mouseScrollByWithWheelAndMomentumPhases(int x, int y, int /*phase*/, int /*momentum*/)
-{
-    // QTFIXME (QScrollEvent?)
-    // mouseScrollBy(x, y);
-    notImplemented();
-}
-
-void EventSenderProxy::swipeGestureWithWheelAndMomentumPhases(int, int, int, int)
-{
-    notImplemented();
 }
 
 void EventSenderProxy::leapForward(int ms)

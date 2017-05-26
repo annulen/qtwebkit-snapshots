@@ -61,7 +61,7 @@ public:
 #elif OS(WINDOWS)
     Attachment(HANDLE handle)
         : m_handle(handle)
-    {}
+    { }
 #endif
 
     Type type() const { return m_type; }

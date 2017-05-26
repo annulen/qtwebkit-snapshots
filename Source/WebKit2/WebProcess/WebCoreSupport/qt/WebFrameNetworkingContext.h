@@ -42,8 +42,7 @@ private:
     WebFrameNetworkingContext(WebFrame*);
     ~WebFrameNetworkingContext() { }
 
-    // QTFIXME: leftover of old process model
-    QNetworkAccessManager* networkAccessManager() const override { RELEASE_ASSERT_NOT_REACHED(); return nullptr; }
+    QNetworkAccessManager* networkAccessManager() const override;
     bool mimeSniffingEnabled() const override { return m_mimeSniffingEnabled; }
     bool thirdPartyCookiePolicyPermission(const QUrl&) const override { /*TODO. Used QWebSettings in WK1.*/ return true; }
     WebCore::NetworkStorageSession& storageSession() const override;
